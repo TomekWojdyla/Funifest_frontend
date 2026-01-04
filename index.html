@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funifest: Home</title>
+    <link rel="stylesheet" href="./src/css/home.css" />
+    <script type="module" src="./src/js/home.js"></script>
+  </head>
+  <body>
+    <main class="hero">
+      <!-- Tło 2x2 -->
+      <div class="hero__tiles" aria-hidden="true">
+        <div class="tile tile--tl"></div>
+        <div class="tile tile--tr"></div>
+        <div class="tile tile--bl"></div>
+        <div class="tile tile--br"></div>
+      </div>
+
+      <!-- Overlay -->
+      <div class="hero__overlay"></div>
+
+      <!-- Content -->
+      <section class="hero__content" aria-label="Ekran startowy Funifest">
+        <h1 class="hero__title">Funifest</h1>
+        <p class="hero__subtitle">Co dzisiaj robisz?</p>
+
+        <div class="hero__buttons">
+          <a
+            class="btn btn--primary"
+            href="./src/pages/skoczek.html"
+            id="btnSkydiver"
+            data-transition-img="./src/images/yolo.webp"
+          >
+            Skaczę
+          </a>
+
+          <a
+            class="btn btn--secondary"
+            href="./src/pages/planista.html"
+            id="btnPlanner"
+            data-transition-img="./src/images/fkyeah.webp"
+          >
+            Planuję
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

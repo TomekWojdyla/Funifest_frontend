@@ -1,0 +1,15 @@
+# system/śmieci
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# logi
+*.log
+
+# zależności (jeśli kiedyś dojdzie node)
+node_modules/
+dist/
+build/
