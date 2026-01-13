@@ -1,21 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Skoczek</title>
+    <title>Planista – Funifest</title>
+
+    <link rel="stylesheet" href="../css/home.css" />
+    <link rel="stylesheet" href="../css/planista.css" />
   </head>
+
   <body>
+    <!-- =========================
+         TOP NAV
+    ========================== -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="../../index.html" class="logo">HOME</a>
+      </div>
+
+      <nav class="topbar__nav">
+        <a href="#" class="nav-link is-disabled" data-section="manifest"
+          >MANIFEST</a
+        >
+        <a href="#" class="nav-link is-disabled" data-section="rigger"
+          >RIGGER</a
+        >
+        <a href="#" class="nav-link is-disabled" data-section="plan">PLAN</a>
+      </nav>
+
+      <div class="topbar__right">
+        <span class="clock">DATE PLACEHOLDER</span>
+      </div>
+    </header>
+
+    <!-- =========================
+         HERO
+    ========================== -->
     <main class="hero">
       <div class="hero__overlay"></div>
 
-      <section class="hero__content" aria-label="Ekran startowy Funifest">
-        <h1 class="hero__title">DRAFT</h1>
+      <section class="hero__content" aria-label="Planowanie skoków">
+        <h1 class="hero__title">Planista</h1>
+        <p class="hero__subtitle">Wczytaj dane albo pomiń i zacznij od zera</p>
 
+        <div class="hero__buttons">
+          <button class="btn btn--primary" id="btnLoad">Load</button>
+          <button class="btn btn--secondary" id="btnSkip">Skip</button>
         </div>
+
+        <p class="status-message" id="statusMessage"></p>
       </section>
     </main>
 
-    <script src="./js/main.js"></script>
+    <script src="../js/planista.js"></script>
   </body>
 </html>

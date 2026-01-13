@@ -1,0 +1,136 @@
+/* =========================
+   HERO BACKGROUND
+========================= */
+.hero {
+  min-height: 100vh;
+  background-image: url('../images/wingsuit-flying.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+/* =========================
+   TOPBAR
+========================= */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+
+  padding: 22px 40px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.topbar__nav {
+  display: flex;
+  justify-content: center;
+  gap: clamp(28px, 5vw, 56px);
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #4da3ff;
+  opacity: 1;
+}
+
+.nav-link.is-disabled {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.logo {
+  color: white;
+  text-decoration: none;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.logo:hover {
+  color: #4da3ff;
+  opacity: 1;
+}
+
+.clock {
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* =========================
+   HERO CONTENT
+========================= */
+.hero__content {
+  padding-top: 80px;
+}
+
+/* =========================
+   BUTTON STATES (NOWE)
+========================= */
+.btn.is-selected {
+  background: linear-gradient(135deg, #4da3ff, #1e6fff);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(77, 163, 255, 0.55);
+  cursor: default;
+}
+
+.btn.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* =========================
+   STATUS MESSAGE
+========================= */
+.status-message {
+  margin-top: 22px;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* =========================
+   RESPONSYWNOŚĆ
+========================= */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 16px 22px;
+  }
+
+  .topbar__nav {
+    gap: 22px;
+  }
+
+  .nav-link,
+  .logo {
+    font-size: 1rem;
+  }
+
+  .clock {
+    font-size: 0.9rem;
+  }
+
+  .hero__content {
+    padding-top: 64px;
+  }
+}
