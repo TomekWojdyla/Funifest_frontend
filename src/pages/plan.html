@@ -32,7 +32,6 @@
     </header>
 
     <main class="plan">
-      <!-- LEFT -->
       <aside class="plan-left">
         <h3>FUNJUMPERS</h3>
         <div class="cards" id="plan-funjumpers"></div>
@@ -42,12 +41,8 @@
 
         <h3>PASAŻEROWIE</h3>
         <div class="cards" id="plan-passengers"></div>
-
-        <h3>SPADOCHRONY</h3>
-        <div class="cards" id="plan-parachutes"></div>
       </aside>
 
-      <!-- RIGHT -->
       <section class="plan-right">
         <h3>CESSNA 182</h3>
 
@@ -63,5 +58,27 @@
         <button class="btn btn--primary plan-go">LET’S GO!</button>
       </section>
     </main>
+
+    <!-- PARACHUTE SELECT MODAL -->
+    <div class="modal" id="parachuteSelectModal">
+      <div class="modal-content">
+        <h3>Wybierz spadochron</h3>
+        <div class="cards" id="parachuteOptions"></div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" id="cancelSelect">Anuluj</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TANDEM INSTRUCTOR SELECT MODAL -->
+    <div class="modal" id="tandemSelectModal">
+      <div class="modal-content">
+        <h3>Wybierz instruktora tandemowego</h3>
+        <div class="cards" id="tandemOptions"></div>
+        <div class="modal-actions">
+          <button class="btn btn--secondary" id="cancelTandem">Anuluj</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

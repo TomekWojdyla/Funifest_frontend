@@ -1,11 +1,14 @@
 import { getState, setState, subscribe } from './state/state.js';
-import { uuid } from './helpers/helpers.js';
+import {
+    uuid,
+    getParachuteLabel,
+    setParachuteStatus,
+} from './helpers/helpers.js';
 
 /* =========================
-   ELEMENTS
+   MODAL
 ========================= */
 const modal = document.getElementById('parachuteModal');
-const dropzoneList = document.getElementById('dropzoneParachutes');
 
 document.getElementById('addParachute').onclick = () =>
     modal.classList.add('active');
@@ -18,61 +21,95 @@ document.getElementById('cancelParachute').onclick = () =>
 ========================= */
 function renderRigger() {
     const { parachutes } = getState();
-    dropzoneList.innerHTML = '';
 
-    parachutes.forEach((p) => dropzoneList.appendChild(parachuteCard(p)));
+    renderParachutes(
+        parachutes.filter((p) => p.status !== 'ASSIGNED'),
+        'dropzoneParachutes'
+    );
 }
 
 /* =========================
-   CARD
+   UI
 ========================= */
-function parachuteCard(p) {
-    const el = document.createElement('div');
-    el.className = 'card';
+function renderParachutes(list, targetId) {
+    const target = document.getElementById(targetId);
+    target.innerHTML = '';
 
-    el.innerHTML = `
-    <button class="card-remove">&times;</button>
-    <div class="card-name">${p.model}</div>
-    <div class="card-meta">
-      <span>${p.size}</span>
-      <span>${p.type}</span>
-    </div>
-  `;
+    list.forEach((p) => {
+        const el = document.createElement('div');
+        el.className = `card ${p.status === 'BLOCKED' ? 'blocked' : ''}`;
 
-    el.querySelector('.card-remove').onclick = () => removeParachute(p.uid);
+        el.innerHTML = `
+      <div class="card-name">
+        ${getParachuteLabel(p)}
+        ${p.status === 'BLOCKED' ? '🔒' : ''}
+      </div>
+      <div class="card-meta">
+        ${p.model} · ${p.size} · ${p.type}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn--small toggle">
+          ${p.status === 'BLOCKED' ? 'Odblokuj' : 'Zablokuj'}
+        </button>
+        <button class="btn btn--small danger">Usuń</button>
+      </div>
+    `;
 
-    return el;
+        el.querySelector('.toggle').onclick = () =>
+            toggleParachute(p.uid, p.status);
+
+        el.querySelector('.danger').onclick = () => removeParachute(p.uid);
+
+        target.appendChild(el);
+    });
 }
 
 /* =========================
    ACTIONS
 ========================= */
-function removeParachute(uid) {
-    setState((s) => {
-        s.parachutes = s.parachutes.filter((p) => p.uid !== uid);
-        return s;
+function toggleParachute(uid, status) {
+    setState((state) => {
+        setParachuteStatus(
+            state,
+            uid,
+            status === 'BLOCKED' ? 'AVAILABLE' : 'BLOCKED'
+        );
+        return state;
     }, 'parachutes');
 }
 
+function removeParachute(uid) {
+    setState((state) => {
+        state.parachutes = state.parachutes.filter((p) => p.uid !== uid);
+        return state;
+    }, 'parachutes');
+}
+
+/* =========================
+   SAVE
+========================= */
 document.getElementById('saveParachute').onclick = () => {
     const model = pcModel.value.trim();
     const size = Number(pcSize.value);
     const type = pcType.value;
+    const customName = pcCustomName.value.trim();
 
     if (!model || !size || !type) {
-        alert('Uzupełnij wszystkie pola');
+        alert('Uzupełnij wymagane pola');
         return;
     }
 
-    setState((s) => {
-        s.parachutes.push({
+    setState((state) => {
+        state.parachutes.push({
             uid: uuid(),
             id: null,
             model,
             size,
             type,
+            customName: customName || null,
+            status: 'AVAILABLE',
         });
-        return s;
+        return state;
     }, 'parachutes');
 
     modal.classList.remove('active');

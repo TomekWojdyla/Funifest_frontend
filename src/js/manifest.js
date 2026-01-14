@@ -1,26 +1,11 @@
 import { getState, setState, subscribe } from './state/state.js';
-import { uuid, fullName, isStaff } from './helpers/helpers.js';
-
-/* =========================
-   MODALS
-========================= */
-const skydiverModal = document.getElementById('skydiverModal');
-const passengerModal = document.getElementById('passengerModal');
-
-window.closeModal = () => {
-    skydiverModal.classList.remove('active');
-    passengerModal.classList.remove('active');
-};
-
-/* =========================
-   BUTTONS
-========================= */
-document.getElementById('addSkydiver').onclick = document.getElementById(
-    'addStaff'
-).onclick = () => skydiverModal.classList.add('active');
-
-document.getElementById('addPassenger').onclick = () =>
-    passengerModal.classList.add('active');
+import {
+    uuid,
+    fullName,
+    isStaff,
+    setPersonStatus,
+    isPersonActive,
+} from './helpers/helpers.js';
 
 /* =========================
    RENDER
@@ -28,136 +13,88 @@ document.getElementById('addPassenger').onclick = () =>
 function renderManifest() {
     const { people } = getState();
 
-    const fj = document.getElementById('funjumpers');
-    const staff = document.getElementById('staff');
-    const pass = document.getElementById('passengers');
+    renderPeople(
+        people.skydivers.filter((s) => !isStaff(s)),
+        'funjumpers',
+        'skydiver'
+    );
 
-    fj.innerHTML = staff.innerHTML = pass.innerHTML = '';
+    renderPeople(
+        people.skydivers.filter((s) => isStaff(s)),
+        'staff',
+        'skydiver'
+    );
 
-    people.skydivers.forEach((s) => {
-        (isStaff(s) ? staff : fj).appendChild(skydiverCard(s));
-    });
-
-    people.passengers.forEach((p) => pass.appendChild(passengerCard(p)));
+    renderPeople(people.passengers, 'passengers', 'passenger');
 }
 
 /* =========================
-   CARDS
+   UI HELPERS
 ========================= */
-function skydiverCard(s) {
-    const el = document.createElement('div');
-    el.className = `card ${isStaff(s) ? 'staff' : ''}`;
+function renderPeople(list, targetId, type) {
+    const target = document.getElementById(targetId);
+    target.innerHTML = '';
 
-    const flags = [];
-    if (s.isAFFInstructor) flags.push('AFF INS');
-    if (s.isTandemInstructor) flags.push('TANDEM INS');
+    list.forEach((p) => {
+        const el = document.createElement('div');
+        el.className = `card ${p.status === 'BLOCKED' ? 'blocked' : ''}`;
 
-    el.innerHTML = `
-    <button class="card-remove">&times;</button>
-    <div class="card-name">${fullName(s)}</div>
-    <div class="card-meta">
-      <span>${s.weight} kg</span>
-      <span>${s.licenseLevel} · ${s.role}</span>
-      ${flags.map((f) => `<span class="flag">${f}</span>`).join('')}
-    </div>
-  `;
+        el.innerHTML = `
+      <div class="card-name">
+        ${fullName(p)} ${p.status === 'BLOCKED' ? '🔒' : ''}
+      </div>
+      <div class="card-meta">
+        ${p.weight} kg
+        ${type === 'skydiver' ? `· ${p.licenseLevel} · ${p.role}` : ''}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn--small toggle">
+          ${p.status === 'BLOCKED' ? 'Odblokuj' : 'Zablokuj'}
+        </button>
+        <button class="btn btn--small danger">Usuń</button>
+      </div>
+    `;
 
-    el.querySelector('.card-remove').onclick = () => removeSkydiver(s.uid);
-    return el;
-}
+        el.querySelector('.toggle').onclick = () =>
+            togglePerson(p.uid, type, p.status);
 
-function passengerCard(p) {
-    const el = document.createElement('div');
-    el.className = 'card passenger';
+        el.querySelector('.danger').onclick = () => removePerson(p.uid, type);
 
-    el.innerHTML = `
-    <button class="card-remove">&times;</button>
-    <div class="card-name">${fullName(p)}</div>
-    <div class="card-meta">
-      <span>${p.weight} kg</span>
-    </div>
-  `;
-
-    el.querySelector('.card-remove').onclick = () => removePassenger(p.uid);
-    return el;
+        target.appendChild(el);
+    });
 }
 
 /* =========================
    ACTIONS
 ========================= */
-function removeSkydiver(uid) {
-    setState((s) => {
-        s.people.skydivers = s.people.skydivers.filter((x) => x.uid !== uid);
-        return s;
+function togglePerson(uid, type, status) {
+    setState((state) => {
+        setPersonStatus(
+            state,
+            uid,
+            type,
+            status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED'
+        );
+        return state;
     }, 'people');
 }
 
-function removePassenger(uid) {
-    setState((s) => {
-        s.people.passengers = s.people.passengers.filter((x) => x.uid !== uid);
-        return s;
+function removePerson(uid, type) {
+    setState((state) => {
+        const list =
+            type === 'skydiver'
+                ? state.people.skydivers
+                : state.people.passengers;
+
+        if (type === 'skydiver') {
+            state.people.skydivers = list.filter((p) => p.uid !== uid);
+        } else {
+            state.people.passengers = list.filter((p) => p.uid !== uid);
+        }
+
+        return state;
     }, 'people');
 }
-
-/* =========================
-   SAVE SKYDIVER
-========================= */
-document.getElementById('saveSkydiver').onclick = () => {
-    const firstName = sdFirstName.value.trim();
-    const lastName = sdLastName.value.trim();
-    const weight = Number(sdWeight.value);
-    const licenseLevel = sdLicense.value;
-    const role = sdRole.value;
-
-    if (!firstName || !lastName || !weight || !licenseLevel || !role) {
-        alert('Uzupełnij wymagane pola');
-        return;
-    }
-
-    setState((s) => {
-        s.people.skydivers.push({
-            uid: uuid(),
-            id: null,
-            firstName,
-            lastName,
-            weight,
-            licenseLevel,
-            role,
-            isAFFInstructor: sdAFF.checked,
-            isTandemInstructor: sdTandem.checked,
-        });
-        return s;
-    }, 'people');
-
-    closeModal();
-};
-
-/* =========================
-   SAVE PASSENGER
-========================= */
-document.getElementById('savePassenger').onclick = () => {
-    const firstName = psFirstName.value.trim();
-    const lastName = psLastName.value.trim();
-    const weight = Number(psWeight.value);
-
-    if (!firstName || !lastName || weight < 30 || weight > 120) {
-        alert('Nieprawidłowe dane pasażera');
-        return;
-    }
-
-    setState((s) => {
-        s.people.passengers.push({
-            uid: uuid(),
-            id: null,
-            firstName,
-            lastName,
-            weight,
-        });
-        return s;
-    }, 'people');
-
-    closeModal();
-};
 
 /* =========================
    INIT

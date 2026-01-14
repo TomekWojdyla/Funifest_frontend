@@ -22,3 +22,7 @@
 .modal.active {
   display: flex;
 }
+
+.card.blocked {
+  opacity: 0.45;
+}

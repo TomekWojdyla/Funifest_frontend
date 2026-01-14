@@ -56,3 +56,40 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.slot-parachute {
+  margin: 8px 0;
+}
+
+.slot .assign {
+  margin-top: 6px;
+}
+
+.slot.invalid {
+  border: 2px solid #ff4d4d;
+}
+
+.remove {
+  margin-top: 6px;
+}
+
+.slot-parachute {
+  margin: 8px 0;
+}
+
+.slot.invalid {
+  border: 2px solid #ff4d4d;
+}
+
+.assign {
+  margin-top: 6px;
+}
+
+.remove {
+  margin-top: 6px;
+}
+
+.modal .cards {
+  max-height: 300px;
+  overflow-y: auto;
+}

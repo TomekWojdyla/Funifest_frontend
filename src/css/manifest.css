@@ -160,3 +160,17 @@
   font-weight: 700;
   color: #4dff88;
 }
+
+.card.blocked {
+  opacity: 0.45;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn.danger {
+  background: #ff4d4d;
+}
