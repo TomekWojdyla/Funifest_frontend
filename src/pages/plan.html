@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Plan – Funifest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="../css/home.css" />
+    <link rel="stylesheet" href="../css/planista.css" />
+    <link rel="stylesheet" href="../css/manifest.css" />
+    <link rel="stylesheet" href="../css/plan.css" />
+
+    <script type="module" src="../js/app.js" defer></script>
+    <script type="module" src="../js/plan.js" defer></script>
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="../../index.html" class="logo">HOME</a>
+      </div>
+
+      <nav class="topbar__nav">
+        <a href="./manifest.html" class="nav-link">MANIFEST</a>
+        <a href="./rigger.html" class="nav-link">RIGGER</a>
+        <a href="./plan.html" class="nav-link is-active">PLAN</a>
+      </nav>
+
+      <div class="topbar__right">
+        <span class="clock"></span>
+      </div>
+    </header>
+
+    <main class="plan">
+      <!-- LEFT -->
+      <aside class="plan-left">
+        <h3>FUNJUMPERS</h3>
+        <div class="cards" id="plan-funjumpers"></div>
+
+        <h3>STAFF</h3>
+        <div class="cards" id="plan-staff"></div>
+
+        <h3>PASAŻEROWIE</h3>
+        <div class="cards" id="plan-passengers"></div>
+
+        <h3>SPADOCHRONY</h3>
+        <div class="cards" id="plan-parachutes"></div>
+      </aside>
+
+      <!-- RIGHT -->
+      <section class="plan-right">
+        <h3>CESSNA 182</h3>
+
+        <div class="aircraft">
+          <div class="slot pilot">PILOT</div>
+          <div class="slot" data-slot="1">SLOT 1</div>
+          <div class="slot" data-slot="2">SLOT 2</div>
+          <div class="slot" data-slot="3">SLOT 3</div>
+          <div class="slot" data-slot="4">SLOT 4</div>
+          <div class="slot" data-slot="5">SLOT 5</div>
+        </div>
+
+        <button class="btn btn--primary plan-go">LET’S GO!</button>
+      </section>
+    </main>
+  </body>
+</html>

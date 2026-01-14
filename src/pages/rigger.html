@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rigger – Funifest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="../css/home.css" />
+    <link rel="stylesheet" href="../css/planista.css" />
+    <link rel="stylesheet" href="../css/manifest.css" />
+    <link rel="stylesheet" href="../css/rigger.css" />
+
+    <script type="module" src="../js/app.js" defer></script>
+    <script type="module" src="../js/rigger.js" defer></script>
+  </head>
+
+  <body>
+    <!-- TOP NAV -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="../../index.html" class="logo">HOME</a>
+      </div>
+
+      <nav class="topbar__nav">
+        <a href="./manifest.html" class="nav-link">MANIFEST</a>
+        <a href="./rigger.html" class="nav-link is-active">RIGGER</a>
+        <a href="./plan.html" class="nav-link">PLAN</a>
+      </nav>
+
+      <div class="topbar__right">
+        <span class="clock"></span>
+      </div>
+    </header>
+
+    <main class="manifest">
+      <!-- PRYWATNE -->
+      <section class="manifest-column">
+        <div class="column-header">
+          <h2>PRYWATNE</h2>
+        </div>
+        <div class="cards" id="privateParachutes">
+          <!-- na razie pusto -->
+        </div>
+      </section>
+
+      <!-- DROPZONE -->
+      <section class="manifest-column">
+        <div class="column-header">
+          <h2>DROPZONE</h2>
+          <button class="btn btn--small" id="addParachute">DODAJ</button>
+        </div>
+        <div class="cards" id="dropzoneParachutes"></div>
+      </section>
+    </main>
+
+    <!-- PARACHUTE MODAL -->
+    <div class="modal" id="parachuteModal">
+      <div class="modal-content">
+        <h3>Dodaj spadochron</h3>
+
+        <input id="pcModel" placeholder="Model (np. Sabre)" />
+        <input id="pcSize" type="number" placeholder="Rozmiar (np. 135)" />
+
+        <select id="pcType">
+          <option value="">Typ</option>
+          <option>Student</option>
+          <option>Sport</option>
+          <option>Tandem</option>
+        </select>
+
+        <div class="modal-actions">
+          <button class="btn btn--secondary" id="cancelParachute">
+            Anuluj
+          </button>
+          <button class="btn btn--primary" id="saveParachute">Zapisz</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

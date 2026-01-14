@@ -1,0 +1,58 @@
+.plan {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+  padding: 140px 40px 40px;
+}
+
+.plan-left {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 16px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.plan-left h3 {
+  margin: 16px 0 8px;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+}
+
+.plan-right {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.aircraft {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.slot {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.slot.pilot {
+  grid-column: span 2;
+  opacity: 0.6;
+}
+
+.plan-go {
+  width: 100%;
+}
+
+.slot.invalid {
+  border: 2px solid #ff4d4d;
+}
+
+.plan-go:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -1,0 +1,24 @@
+/* RIGGER NIE POTRZEBA WŁASNEGO LAYOUTU
+   korzystamy z manifest.css */
+
+.nav-link.is-active {
+  color: #ff9f4d;
+  font-weight: 700;
+}
+
+/* =========================
+   MODAL (NAPRAWA!)
+========================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.modal.active {
+  display: flex;
+}

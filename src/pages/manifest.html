@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Manifest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="../css/home.css" />
+    <link rel="stylesheet" href="../css/planista.css" />
+    <link rel="stylesheet" href="../css/manifest.css" />
+
+    <!-- JS W HEAD -->
+    <script type="module" src="../js/app.js" defer></script>
+    <script type="module" src="../js/manifest.js" defer></script>
+  </head>
+
+  <body>
+    <!-- TOP NAV -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <a href="../../index.html" class="logo">HOME</a>
+      </div>
+
+      <nav class="topbar__nav">
+        <a href="./manifest.html" class="nav-link is-active">MANIFEST</a>
+        <a href="./rigger.html" class="nav-link">RIGGER</a>
+        <a href="./plan.html" class="nav-link">PLAN</a>
+      </nav>
+
+      <div class="topbar__right">
+        <span class="clock"></span>
+      </div>
+    </header>
+
+    <main class="manifest">
+      <!-- FUNJUMPERS -->
+      <section class="manifest-column">
+        <div class="column-header">
+          <h2>FUNJUMPERS</h2>
+          <button class="btn btn--small" id="addSkydiver">DODAJ</button>
+        </div>
+        <div class="cards" id="funjumpers"></div>
+      </section>
+
+      <!-- STAFF -->
+      <section class="manifest-column">
+        <div class="column-header">
+          <h2>STAFF</h2>
+          <button class="btn btn--small" id="addStaff">DODAJ</button>
+        </div>
+        <div class="cards" id="staff"></div>
+      </section>
+
+      <!-- PASSENGERS -->
+      <section class="manifest-column">
+        <div class="column-header">
+          <h2>PASAŻEROWIE</h2>
+          <button class="btn btn--small" id="addPassenger">DODAJ</button>
+        </div>
+        <div class="cards" id="passengers"></div>
+      </section>
+    </main>
+
+    <!-- SKYDIVER MODAL -->
+    <div class="modal" id="skydiverModal">
+      <div class="modal-content">
+        <h3>Dodaj skoczka</h3>
+
+        <input id="sdFirstName" placeholder="Imię" />
+        <input id="sdLastName" placeholder="Nazwisko" />
+        <input id="sdWeight" type="number" placeholder="Waga (kg)" />
+
+        <select id="sdLicense">
+          <option value="">Licencja</option>
+          <option>A</option>
+          <option>B</option>
+          <option>C</option>
+          <option>D</option>
+        </select>
+
+        <select id="sdRole">
+          <option value="">Rola</option>
+          <option>StudentAffEntry</option>
+          <option>StudentAffAdvanced</option>
+          <option>Student</option>
+          <option>FunJumper</option>
+          <option>Instructor</option>
+          <option>Examiner</option>
+        </select>
+
+        <label><input type="checkbox" id="sdAFF" /> AFF INS</label>
+        <label><input type="checkbox" id="sdTandem" /> TANDEM INS</label>
+
+        <div class="modal-actions">
+          <button class="btn btn--secondary" onclick="closeModal()">
+            Anuluj
+          </button>
+          <button class="btn btn--primary" id="saveSkydiver">Zapisz</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSENGER MODAL -->
+    <div class="modal" id="passengerModal">
+      <div class="modal-content">
+        <h3>Dodaj pasażera</h3>
+
+        <input id="psFirstName" placeholder="Imię" />
+        <input id="psLastName" placeholder="Nazwisko" />
+        <input id="psWeight" type="number" placeholder="Waga (30–120 kg)" />
+
+        <div class="modal-actions">
+          <button class="btn btn--secondary" onclick="closeModal()">
+            Anuluj
+          </button>
+          <button class="btn btn--primary" id="savePassenger">Zapisz</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
