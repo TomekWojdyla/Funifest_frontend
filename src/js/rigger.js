@@ -1,14 +1,20 @@
 import { getState, setState, subscribe } from './state/state.js';
+import { api } from './api/api.js';
 import {
-    uuid,
     getParachuteLabel,
     setParachuteStatus,
+    showError,
 } from './helpers/helpers.js';
 
 /* =========================
    MODAL
 ========================= */
 const modal = document.getElementById('parachuteModal');
+const pcCustomName = document.getElementById('pcCustomName');
+const pcModel = document.getElementById('pcModel');
+const pcSize = document.getElementById('pcSize');
+const pcType = document.getElementById('pcType');
+const saveParachuteBtn = document.getElementById('saveParachute');
 
 document.getElementById('addParachute').onclick = () =>
     modal.classList.add('active');
@@ -56,39 +62,47 @@ function renderParachutes(list, targetId) {
     `;
 
         el.querySelector('.toggle').onclick = () =>
-            toggleParachute(p.uid, p.status);
+            toggleParachute(p.id, p.status);
 
-        el.querySelector('.danger').onclick = () => removeParachute(p.uid);
+        el.querySelector('.danger').onclick = () => removeParachute(p.id);
 
         target.appendChild(el);
     });
 }
 
 /* =========================
-   ACTIONS
+   ACTIONS (DRAFT / CACHE)
 ========================= */
-function toggleParachute(uid, status) {
+function toggleParachute(id, status) {
     setState((state) => {
         setParachuteStatus(
             state,
-            uid,
+            id,
             status === 'BLOCKED' ? 'AVAILABLE' : 'BLOCKED'
         );
         return state;
     }, 'parachutes');
 }
 
-function removeParachute(uid) {
+async function removeParachute(id) {
     setState((state) => {
-        state.parachutes = state.parachutes.filter((p) => p.uid !== uid);
+        state.parachutes = state.parachutes.filter((p) => p.id !== id);
         return state;
     }, 'parachutes');
+
+    try {
+        await api.deleteParachute(id);
+        await syncParachutesFromApi();
+    } catch (e) {
+        showError(e);
+        await syncParachutesFromApi();
+    }
 }
 
 /* =========================
-   SAVE
+   SAVE (POST → GET)
 ========================= */
-document.getElementById('saveParachute').onclick = () => {
+saveParachuteBtn.onclick = async () => {
     const model = pcModel.value.trim();
     const size = Number(pcSize.value);
     const type = pcType.value;
@@ -99,24 +113,52 @@ document.getElementById('saveParachute').onclick = () => {
         return;
     }
 
-    setState((state) => {
-        state.parachutes.push({
-            uid: uuid(),
-            id: null,
+    try {
+        await api.createParachute({
             model,
             size,
             type,
             customName: customName || null,
-            status: 'AVAILABLE',
         });
-        return state;
-    }, 'parachutes');
 
-    modal.classList.remove('active');
+        pcCustomName.value = '';
+        pcModel.value = '';
+        pcSize.value = '';
+        pcType.value = '';
+
+        modal.classList.remove('active');
+        await syncParachutesFromApi();
+    } catch (e) {
+        showError(e);
+    }
 };
+
+/* =========================
+   SYNC (GET → STATE)
+========================= */
+async function syncParachutesFromApi() {
+    try {
+        const parachutes = await api.getParachutes();
+
+        setState((state) => {
+            state.parachutes = (parachutes || []).map((p) => ({
+                id: p.id,
+                model: p.model,
+                size: p.size,
+                type: p.type,
+                customName: p.customName ?? null,
+                status: 'AVAILABLE',
+            }));
+            return state;
+        }, 'parachutes');
+    } catch (e) {
+        showError(e);
+    }
+}
 
 /* =========================
    INIT
 ========================= */
 subscribe('parachutes', renderRigger);
 renderRigger();
+syncParachutesFromApi();

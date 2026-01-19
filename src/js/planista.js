@@ -3,6 +3,15 @@ const btnSkip = document.getElementById('btnSkip');
 const statusMessage = document.getElementById('statusMessage');
 const navLinks = document.querySelectorAll('.nav-link');
 const clock = document.querySelector('.clock');
+const subtitle = document.getElementById('subtitle');
+const buttons = document.getElementById('buttons');
+
+/* =========================
+   STORAGE KEYS
+========================= */
+const STORAGE_KEY = 'funifest_app_state';
+const PLAN_SAVED_AT_KEY = 'funifest_last_plan_saved_at';
+const PLAN_SAVED_ID_KEY = 'funifest_last_exit_plan_id';
 
 /* =========================
    CLOCK
@@ -29,7 +38,7 @@ updateClock();
 setInterval(updateClock, 1000);
 
 /* =========================
-   NAV UNLOCK
+   NAV
 ========================= */
 function unlockNavigation(message) {
     statusMessage.textContent = message;
@@ -40,28 +49,71 @@ function unlockNavigation(message) {
     });
 }
 
+function lockChoiceButtons() {
+    btnLoad.classList.add('is-disabled');
+    btnSkip.classList.add('is-disabled');
+    btnLoad.disabled = true;
+    btnSkip.disabled = true;
+}
+
+function hideChoiceButtons() {
+    if (buttons) buttons.style.display = 'none';
+}
+
 /* =========================
-   BUTTON CHOICE HANDLER
+   PLAN SAVED MODE
+========================= */
+function tryEnterPlanSavedMode() {
+    const savedAt = localStorage.getItem(PLAN_SAVED_AT_KEY);
+    if (!savedAt) return false;
+
+    const dt = new Date(savedAt);
+    const dateText = Number.isNaN(dt.getTime())
+        ? 'Plan został zapisany'
+        : `Plan zapisany: ${dt.toLocaleString('pl-PL')}`;
+
+    if (subtitle) subtitle.textContent = dateText;
+
+    hideChoiceButtons();
+    unlockNavigation('Plan gotowy. Przejdź dalej z menu.');
+
+    return true;
+}
+
+/* =========================
+   CHOICE HANDLER
 ========================= */
 function handleChoice(selectedBtn, otherBtn, message) {
     selectedBtn.classList.add('is-selected');
     otherBtn.classList.add('is-disabled');
+    otherBtn.disabled = true;
 
     unlockNavigation(message);
 }
 
 btnLoad.addEventListener('click', () => {
+    lockChoiceButtons();
     handleChoice(
         btnLoad,
         btnSkip,
-        'Manifest załadowany. Przejdź dalej do opcji z menu.'
+        'Cache zostaje. Przejdź dalej z menu.'
     );
 });
 
 btnSkip.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(PLAN_SAVED_AT_KEY);
+    localStorage.removeItem(PLAN_SAVED_ID_KEY);
+
+    lockChoiceButtons();
     handleChoice(
         btnSkip,
         btnLoad,
-        'From zero to hero! Przejdź dalej do opcji z menu.'
+        'Cache wyczyszczony. Przejdź dalej z menu.'
     );
 });
+
+/* =========================
+   INIT
+========================= */
+tryEnterPlanSavedMode();

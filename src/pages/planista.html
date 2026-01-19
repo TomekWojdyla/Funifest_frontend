@@ -19,12 +19,8 @@
       </div>
 
       <nav class="topbar__nav">
-        <a href="#" class="nav-link is-disabled" data-section="manifest"
-          >MANIFEST</a
-        >
-        <a href="#" class="nav-link is-disabled" data-section="rigger"
-          >RIGGER</a
-        >
+        <a href="#" class="nav-link is-disabled" data-section="manifest">MANIFEST</a>
+        <a href="#" class="nav-link is-disabled" data-section="rigger">RIGGER</a>
         <a href="#" class="nav-link is-disabled" data-section="plan">PLAN</a>
       </nav>
 
@@ -41,11 +37,13 @@
 
       <section class="hero__content" aria-label="Planowanie skoków">
         <h1 class="hero__title">Planista</h1>
-        <p class="hero__subtitle">Wczytaj dane albo pomiń i zacznij od zera</p>
+        <p class="hero__subtitle" id="subtitle">
+          Wczytaj cache albo wyczyść i zacznij od zera
+        </p>
 
-        <div class="hero__buttons">
-          <button class="btn btn--primary" id="btnLoad">Load</button>
-          <button class="btn btn--secondary" id="btnSkip">Skip</button>
+        <div class="hero__buttons" id="buttons">
+          <button class="btn btn--primary" id="btnLoad">Wczytaj cache</button>
+          <button class="btn btn--secondary" id="btnSkip">Start od zera</button>
         </div>
 
         <p class="status-message" id="statusMessage"></p>

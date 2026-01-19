@@ -16,6 +16,7 @@ export function createInitialState(source = 'skip') {
 
         flightPlan: {
             aircraft: 'CESSNA_182',
+            exitPlanId: null,
             slots: [],
         },
     };

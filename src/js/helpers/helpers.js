@@ -8,6 +8,19 @@ export const uuid = () => crypto.randomUUID();
 export const fullName = (p) => `${p.firstName} ${p.lastName}`;
 
 /* =========================
+   UI – ERRORS
+========================= */
+export function showError(message) {
+    const text =
+        typeof message === 'string'
+            ? message
+            : message && message.message
+              ? message.message
+              : 'Error';
+    alert(text);
+}
+
+/* =========================
    PERSON TYPES
 ========================= */
 export const isSkydiver = (p) => 'licenseLevel' in p;
@@ -17,17 +30,17 @@ export const isPassenger = (p) => !isSkydiver(p);
 export const isStaff = (s) =>
     s.role === 'Instructor' ||
     s.role === 'Examiner' ||
-    s.isAFFInstructor ||
+    s.isAffInstructor ||
     s.isTandemInstructor;
 
 /* =========================
    STATUS – PERSON
 ========================= */
-export function setPersonStatus(state, uid, type, status) {
+export function setPersonStatus(state, id, type, status) {
     const list =
         type === 'skydiver' ? state.people.skydivers : state.people.passengers;
 
-    const p = list.find((x) => x.uid === uid);
+    const p = list.find((x) => x.id === id);
     if (p) p.status = status;
 }
 
@@ -38,8 +51,8 @@ export function isPersonActive(person) {
 /* =========================
    STATUS – PARACHUTE
 ========================= */
-export function setParachuteStatus(state, uid, status) {
-    const p = state.parachutes.find((x) => x.uid === uid);
+export function setParachuteStatus(state, id, status) {
+    const p = state.parachutes.find((x) => x.id === id);
     if (p) p.status = status;
 }
 
@@ -50,19 +63,19 @@ export function isParachuteAvailable(p) {
 /* =========================
    SELECTORS
 ========================= */
-export function getPersonByUid(state, uid, type) {
+export function getPersonById(state, id, type) {
     if (type === 'skydiver') {
-        return state.people.skydivers.find((s) => s.uid === uid);
+        return state.people.skydivers.find((s) => s.id === id);
     }
-    return state.people.passengers.find((p) => p.uid === uid);
+    return state.people.passengers.find((p) => p.id === id);
 }
 
 export function getSlotPerson(state, slot) {
-    return getPersonByUid(state, slot.personUid, slot.personType);
+    return getPersonById(state, slot.personId, slot.personType);
 }
 
-export function getParachuteByUid(state, uid) {
-    return state.parachutes.find((p) => p.uid === uid);
+export function getParachuteById(state, id) {
+    return state.parachutes.find((p) => p.id === id);
 }
 
 /* =========================
@@ -97,13 +110,11 @@ export function getTandemInstructorsInFlight(state) {
         .filter((s) => s.personType === 'skydiver')
         .map((s) => ({
             slot: s,
-            person: getPersonByUid(state, s.personUid, 'skydiver'),
+            person: getPersonById(state, s.personId, 'skydiver'),
         }))
         .filter(
             ({ person, slot }) =>
-                person &&
-                person.isTandemInstructor === true &&
-                slot.parachuteUid
+                person && person.isTandemInstructor === true && slot.parachuteId
         );
 }
 
@@ -116,20 +127,16 @@ export function validateTandemRules(state) {
     const passengerSlots = slots.filter((s) => s.personType === 'passenger');
 
     for (const ps of passengerSlots) {
-        if (!ps.tandemInstructorUid) return false;
+        if (!ps.tandemInstructorId) return false;
 
         const instructorSlot = slots.find(
             (s) =>
-                s.personType === 'skydiver' &&
-                s.personUid === ps.tandemInstructorUid
+                s.personType === 'skydiver' && s.personId === ps.tandemInstructorId
         );
 
         if (!instructorSlot) return false;
 
-        if (
-            !ps.parachuteUid ||
-            ps.parachuteUid !== instructorSlot.parachuteUid
-        ) {
+        if (!ps.parachuteId || ps.parachuteId !== instructorSlot.parachuteId) {
             return false;
         }
     }
@@ -137,8 +144,8 @@ export function validateTandemRules(state) {
     // 1 instruktor = max 1 pasażer
     const usage = {};
     passengerSlots.forEach((ps) => {
-        usage[ps.tandemInstructorUid] =
-            (usage[ps.tandemInstructorUid] || 0) + 1;
+        usage[ps.tandemInstructorId] =
+            (usage[ps.tandemInstructorId] || 0) + 1;
     });
 
     return Object.values(usage).every((c) => c === 1);
