@@ -21,6 +21,311 @@ import {
 let slotWaitingForParachute = null;
 let passengerWaitingForInstructor = null;
 
+let planDnDInitialized = false;
+
+let planDrag = {
+    pointerId: null,
+    started: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    person: null,
+    personType: null,
+    originEl: null,
+    ghostEl: null,
+    hoverSlotEl: null,
+};
+
+function clearSlotLiftVisual() {
+    document.querySelectorAll('.slot[data-slot]').forEach((el) => {
+        el.style.transition = '';
+        el.style.transform = '';
+        el.style.boxShadow = '';
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+    });
+}
+
+function applySlotLiftVisual(active, hoverEl = null) {
+    const slots = document.querySelectorAll('.slot[data-slot]');
+    slots.forEach((el) => {
+        el.style.transition = 'transform 120ms ease, box-shadow 120ms ease, outline 120ms ease';
+        if (!active) {
+            el.style.transform = '';
+            el.style.boxShadow = '';
+            el.style.outline = '';
+            el.style.outlineOffset = '';
+            return;
+        }
+
+        el.style.transform = 'translateY(-2px)';
+        el.style.boxShadow = '0 6px 14px rgba(0,0,0,0.18)';
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+
+        if (hoverEl && el === hoverEl) {
+            el.style.transform = 'translateY(-5px)';
+            el.style.boxShadow = '0 10px 22px rgba(0,0,0,0.25)';
+            el.style.outline = '2px solid rgba(46, 204, 113, 0.9)';
+            el.style.outlineOffset = '2px';
+        }
+    });
+}
+
+function cleanupPlanDrag() {
+    if (planDrag.ghostEl && planDrag.ghostEl.parentNode) {
+        planDrag.ghostEl.parentNode.removeChild(planDrag.ghostEl);
+    }
+    planDrag = {
+        pointerId: null,
+        started: false,
+        startX: 0,
+        startY: 0,
+        offsetX: 0,
+        offsetY: 0,
+        person: null,
+        personType: null,
+        originEl: null,
+        ghostEl: null,
+        hoverSlotEl: null,
+    };
+    clearSlotLiftVisual();
+}
+
+function getSlotElFromPoint(x, y) {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    return el.closest ? el.closest('.slot[data-slot]') : null;
+}
+
+function assignPersonToSlot(person, type, slotNumber) {
+    const stateNow = getState();
+    if (isLockedPlan(stateNow)) return;
+
+    const activeId = currentPlanId(stateNow);
+
+    if (isPersonBlocked(person)) return;
+    if (getPersonBlockReason(person, activeId)) return;
+
+    setState((state) => {
+        const removeSkydiverSideEffects = (skydiverId) => {
+            state.flightPlan.slots = state.flightPlan.slots.map((s) => {
+                if (s.personType !== 'passenger') return s;
+                if (s.tandemInstructorId !== skydiverId) return s;
+
+                return {
+                    ...s,
+                    tandemInstructorId: null,
+                    parachuteId: null,
+                };
+            });
+        };
+
+        const existing = state.flightPlan.slots.find(
+            (s) => s.personType === type && s.personId === person.id
+        );
+
+        if (existing && existing.slotNumber !== slotNumber) {
+            if (existing.personType === 'skydiver') removeSkydiverSideEffects(existing.personId);
+
+            state.flightPlan.slots = state.flightPlan.slots.filter(
+                (s) => s.slotNumber !== existing.slotNumber
+            );
+        }
+
+        const targetIdx = state.flightPlan.slots.findIndex((s) => s.slotNumber === slotNumber);
+
+        if (targetIdx >= 0) {
+            const removed = state.flightPlan.slots[targetIdx];
+            if (removed.personType === 'skydiver') removeSkydiverSideEffects(removed.personId);
+
+            state.flightPlan.slots[targetIdx] = {
+                slotNumber,
+                personId: person.id,
+                personType: type,
+                parachuteId: null,
+                tandemInstructorId: null,
+            };
+        } else {
+            state.flightPlan.slots.push({
+                slotNumber,
+                personId: person.id,
+                personType: type,
+                parachuteId: null,
+                tandemInstructorId: null,
+            });
+        }
+
+        return state;
+    }, 'flightPlan');
+}
+
+function beginPersonDrag(e, person, type, originEl) {
+    const stateNow = getState();
+    if (isLockedPlan(stateNow)) return;
+
+    planDrag.pointerId = e.pointerId ?? null;
+    planDrag.startX = e.clientX;
+    planDrag.startY = e.clientY;
+    planDrag.person = person;
+    planDrag.personType = type;
+    planDrag.originEl = originEl;
+
+    const rect = originEl.getBoundingClientRect();
+    planDrag.offsetX = e.clientX - rect.left;
+    planDrag.offsetY = e.clientY - rect.top;
+}
+
+function startGhostIfNeeded() {
+    if (planDrag.started) return;
+    if (!planDrag.originEl) return;
+
+    planDrag.started = true;
+
+    const ghost = planDrag.originEl.cloneNode(true);
+    ghost.style.position = 'fixed';
+    ghost.style.left = '0px';
+    ghost.style.top = '0px';
+    ghost.style.margin = '0';
+    ghost.style.zIndex = '9999';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.opacity = '0.9';
+    ghost.style.width = `${planDrag.originEl.getBoundingClientRect().width}px`;
+    ghost.style.transform = 'translate(-10000px, -10000px)';
+    ghost.style.boxShadow = '0 10px 22px rgba(0,0,0,0.28)';
+
+    document.body.appendChild(ghost);
+    planDrag.ghostEl = ghost;
+
+    applySlotLiftVisual(true, null);
+}
+
+function moveGhost(x, y) {
+    if (!planDrag.ghostEl) return;
+    const tx = x - planDrag.offsetX;
+    const ty = y - planDrag.offsetY;
+    planDrag.ghostEl.style.transform = `translate(${tx}px, ${ty}px)`;
+}
+
+function initPlanDragAndDrop() {
+    if (planDnDInitialized) return;
+    planDnDInitialized = true;
+
+    document.addEventListener(
+        'pointermove',
+        (e) => {
+            if (!planDrag.person || (planDrag.pointerId !== null && e.pointerId !== planDrag.pointerId)) return;
+
+            const dx = e.clientX - planDrag.startX;
+            const dy = e.clientY - planDrag.startY;
+
+            if (!planDrag.started) {
+                if (Math.hypot(dx, dy) < 7) return;
+                startGhostIfNeeded();
+            }
+
+            if (e.cancelable) e.preventDefault();
+
+            moveGhost(e.clientX, e.clientY);
+
+            const slotEl = getSlotElFromPoint(e.clientX, e.clientY);
+            planDrag.hoverSlotEl = slotEl;
+            applySlotLiftVisual(true, slotEl);
+        },
+        { passive: false }
+    );
+
+    const finish = (e) => {
+        if (!planDrag.person || (planDrag.pointerId !== null && e.pointerId !== planDrag.pointerId)) return;
+
+        if (planDrag.started) {
+            const slotEl = planDrag.hoverSlotEl;
+            if (slotEl && slotEl.dataset && slotEl.dataset.slot) {
+                const slotNumber = Number(slotEl.dataset.slot);
+                if (!Number.isNaN(slotNumber)) {
+                    assignPersonToSlot(planDrag.person, planDrag.personType, slotNumber);
+                }
+            }
+        }
+
+        cleanupPlanDrag();
+    };
+
+    document.addEventListener('pointerup', finish);
+    document.addEventListener('pointercancel', finish);
+    document.addEventListener('blur', () => cleanupPlanDrag(), true);
+}
+
+const PLAN_LEFT_COLLAPSE_KEY = 'funifest.ui.plan.left.collapsed';
+
+function readPlanLeftCollapsed() {
+    try {
+        const raw = localStorage.getItem(PLAN_LEFT_COLLAPSE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writePlanLeftCollapsed(map) {
+    try {
+        localStorage.setItem(PLAN_LEFT_COLLAPSE_KEY, JSON.stringify(map || {}));
+    } catch {}
+}
+
+function applyPlanLeftSectionState(headerEl, contentEl, collapsed) {
+    contentEl.style.display = collapsed ? 'none' : '';
+    headerEl.setAttribute('aria-expanded', String(!collapsed));
+
+    const indicator = headerEl.querySelector('[data-collapse-indicator="1"]');
+    if (indicator) indicator.textContent = collapsed ? '▸ ' : '▾ ';
+}
+
+function initPlanLeftCollapsibles() {
+    const left = document.querySelector('.plan-left');
+    if (!left) return;
+
+    const headers = Array.from(left.querySelectorAll('h3'));
+
+    headers.forEach((h, idx) => {
+        const content = h.nextElementSibling;
+        if (!content || !(content instanceof HTMLElement)) return;
+
+        const key = content.id || h.textContent.trim() || String(idx);
+        const collapsedMap = readPlanLeftCollapsed();
+        const collapsed = collapsedMap[key] === true;
+
+        h.style.cursor = 'pointer';
+        h.tabIndex = 0;
+        h.setAttribute('role', 'button');
+
+        if (!h.querySelector('[data-collapse-indicator="1"]')) {
+            const span = document.createElement('span');
+            span.setAttribute('data-collapse-indicator', '1');
+            span.textContent = collapsed ? '▸ ' : '▾ ';
+            h.prepend(span);
+        }
+
+        applyPlanLeftSectionState(h, content, collapsed);
+
+        const toggle = () => {
+            const nextCollapsed = content.style.display !== 'none';
+            writePlanLeftCollapsed({ ...readPlanLeftCollapsed(), [key]: nextCollapsed });
+            applyPlanLeftSectionState(h, content, nextCollapsed);
+        };
+
+        h.onclick = toggle;
+        h.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle();
+            }
+        };
+    });
+}
+
 /* =========================
    HELPERS
 ========================= */
@@ -775,7 +1080,9 @@ function renderPlan() {
 
 /* =========================
    LEFT LISTS
-========================= */function renderPeople(list, targetId, type, locked, usedSet, activeId) {
+========================= */
+
+function renderPeople(list, targetId, type, locked, usedSet, activeId) {
     const target = document.getElementById(targetId);
     target.innerHTML = '';
 
@@ -798,6 +1105,16 @@ function renderPlan() {
         btn.disabled = disabled;
         btn.title = reason || (isUsed ? 'Już w tym planie' : '');
         btn.onclick = () => addToFlight(p, type);
+
+        if (!disabled) {
+            el.onpointerdown = (e) => {
+                if (e.target && e.target.closest && e.target.closest('button')) return;
+                if (e.button !== undefined && e.button !== 0) return;
+                beginPersonDrag(e, p, type, el);
+            };
+        } else {
+            el.onpointerdown = null;
+        }  
 
         target.appendChild(el);
     });
@@ -1239,7 +1556,9 @@ async function syncFromApi() {
 /* =========================
    INIT
 ========================= */
+initPlanDragAndDrop();
 subscribe('*', renderPlan);
+initPlanLeftCollapsibles();
 renderPlan();
 const init = getState();
 if (!normalizeTimeValue(init.flightPlan.time)) {
