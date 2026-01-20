@@ -25,7 +25,7 @@
   align-items: center;
 
   padding: 22px 40px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--theme-navbar-background);
   backdrop-filter: blur(10px);
 }
 

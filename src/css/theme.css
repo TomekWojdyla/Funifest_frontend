@@ -1,0 +1,31 @@
+:root {
+  --theme-text-primary: #fff;
+
+  --theme-page-background: transparent;
+
+  --theme-navbar-background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.6),
+    rgba(0, 0, 0, 0.6)
+  );
+
+  --theme-surface-panel: rgba(0, 0, 0, 0.35);
+
+  --theme-border-subtle: rgba(255, 255, 255, 0.14);
+  --theme-border-outline: rgba(255, 255, 255, 0.35);
+
+  --theme-slot-bg: rgba(255, 255, 255, 0.15);
+  --theme-danger: #ff4d4d;
+
+  --theme-item-bg: rgba(255, 255, 255, 0.06);
+  --theme-item-bg-hover: rgba(255, 255, 255, 0.10);
+
+  --theme-badge-border-draft: rgba(255, 255, 255, 0.20);
+  --theme-badge-border-dispatched: rgba(255, 255, 255, 0.10);
+
+  --theme-time-border: rgba(255, 255, 255, 0.18);
+  --theme-time-bg: rgba(255, 255, 255, 0.08);
+
+  --theme-border-success: rgba(120, 255, 160, 0.28);
+  --theme-border-error: rgba(255, 120, 120, 0.28);
+}

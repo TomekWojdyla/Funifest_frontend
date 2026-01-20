@@ -13,6 +13,7 @@ body {
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--theme-page-background);
   color: #fff;
 }
 

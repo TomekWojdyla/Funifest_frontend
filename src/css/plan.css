@@ -1,3 +1,31 @@
+:root {
+  --plan-text: var(--theme-text-primary);
+
+  --plan-panel-bg: var(--theme-surface-panel);
+
+  --plan-message-bg: var(--theme-surface-panel);
+  --plan-message-border: var(--theme-border-subtle);
+  --plan-message-border-success: var(--theme-border-success);
+  --plan-message-border-error: var(--theme-border-error);
+  --plan-message-border-info: var(--theme-border-subtle);
+
+  --plan-slot-bg: var(--theme-slot-bg);
+  --plan-slot-border-invalid: var(--theme-danger);
+
+  --plan-item-bg: var(--theme-item-bg);
+  --plan-item-bg-hover: var(--theme-item-bg-hover);
+  --plan-item-border: var(--theme-border-subtle);
+  --plan-item-outline-active: var(--theme-border-outline);
+
+  --plan-badge-bg: var(--theme-item-bg);
+  --plan-badge-border: var(--theme-border-subtle);
+  --plan-badge-border-draft: var(--theme-badge-border-draft);
+  --plan-badge-border-dispatched: var(--theme-badge-border-dispatched);
+
+  --plan-time-bg: var(--theme-time-bg);
+  --plan-time-border: var(--theme-time-border);
+}
+
 .plan {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
@@ -24,7 +52,7 @@
 .plan-left,
 .plan-center,
 .plan-drops {
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--plan-panel-bg);
   border-radius: 16px;
   padding: 20px;
   overflow: hidden;
@@ -60,12 +88,12 @@
   display: none;
   padding: 12px 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--plan-message-border);
+  background: var(--plan-message-bg);
   backdrop-filter: blur(10px);
   font-size: 0.9rem;
   line-height: 1.35;
-  color: #fff;
+  color: var(--plan-text);
 }
 
 .plan-message--panel {
@@ -78,18 +106,18 @@
 }
 
 .plan-message.is-success {
-  border-color: rgba(120, 255, 160, 0.28);
-  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--plan-message-border-success);
+  background: var(--plan-message-bg);
 }
 
 .plan-message.is-error {
-  border-color: rgba(255, 120, 120, 0.28);
-  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--plan-message-border-error);
+  background: var(--plan-message-bg);
 }
 
 .plan-message.is-info {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--plan-message-border-info);
+  background: var(--plan-message-bg);
 }
 
 .aircraft {
@@ -100,7 +128,7 @@
 }
 
 .slot {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--plan-slot-bg);
   border-radius: 12px;
   padding: 16px;
   text-align: center;
@@ -146,7 +174,7 @@
 }
 
 .slot.invalid {
-  border: 2px solid #ff4d4d;
+  border: 2px solid var(--plan-slot-border-invalid);
 }
 
 .slot-parachute {
@@ -192,9 +220,9 @@
 .plan-item {
   width: 100%;
   text-align: left;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  border: 1px solid var(--plan-item-border);
+  background: var(--plan-item-bg);
+  color: var(--plan-text);
   border-radius: 12px;
   padding: 12px 12px;
   cursor: pointer;
@@ -205,11 +233,11 @@
 }
 
 .plan-item:hover {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--plan-item-bg-hover);
 }
 
 .plan-item.is-active {
-  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline: 2px solid var(--plan-item-outline-active);
 }
 
 .plan-item.is-dispatched {
@@ -228,18 +256,18 @@
   letter-spacing: 0.08em;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--plan-badge-border);
+  background: var(--plan-badge-bg);
   opacity: 0.9;
   white-space: nowrap;
 }
 
 .plan-item__badge--draft {
-  border-color: rgba(255, 255, 255, 0.20);
+  border-color: var(--plan-badge-border-draft);
 }
 
 .plan-item__badge--dispatched {
-  border-color: rgba(255, 255, 255, 0.10);
+  border-color: var(--plan-badge-border-dispatched);
   opacity: 0.65;
 }
 
@@ -260,9 +288,9 @@
 .plan-item__time {
   width: 110px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  border: 1px solid var(--plan-time-border);
+  background: var(--plan-time-bg);
+  color: var(--plan-text);
   padding: 8px 10px;
 }
 
