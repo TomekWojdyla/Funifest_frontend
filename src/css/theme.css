@@ -1,23 +1,27 @@
 :root {
   --theme-text-primary: #fff;
 
-  --theme-page-background: transparent;
-
-  --theme-navbar-background: linear-gradient(
+  --theme-page-background: linear-gradient(
     135deg,
-    rgba(0, 0, 0, 0.6),
-    rgba(0, 0, 0, 0.6)
+    #9898da99,
+    #715ccf
   );
 
-  --theme-surface-panel: rgba(0, 0, 0, 0.35);
+  --theme-navbar-background: linear-gradient(
+    180deg,
+    rgba(90, 92, 209, 0.6),
+    rgba(42, 35, 114, 0.6)
+  );
+
+  --theme-surface-panel: rgba(37, 37, 58, 0.445);
 
   --theme-border-subtle: rgba(255, 255, 255, 0.14);
   --theme-border-outline: rgba(255, 255, 255, 0.35);
 
-  --theme-slot-bg: rgba(255, 255, 255, 0.15);
+  --theme-slot-bg: rgba(255, 255, 255, 0.4);
   --theme-danger: #ff4d4d;
 
-  --theme-item-bg: rgba(255, 255, 255, 0.06);
+  --theme-item-bg: rgba(255, 255, 255, 0.4);
   --theme-item-bg-hover: rgba(255, 255, 255, 0.10);
 
   --theme-badge-border-draft: rgba(255, 255, 255, 0.20);
@@ -28,4 +32,14 @@
 
   --theme-border-success: rgba(120, 255, 160, 0.28);
   --theme-border-error: rgba(255, 120, 120, 0.28);
+
+  --theme-card-bg: rgba(255, 255, 255, 0.4);
+
+  --theme-accent-funjumper: #4da3ff;
+  --theme-accent-staff: #4dff88;
+  --theme-accent-passenger: #ffb84d;
+  --theme-accent-rigger: #ff9f4d;
+
+  --theme-modal-overlay: rgba(0, 0, 0, 0.65);
+  --theme-modal-content-bg: #1e1e1e;
 }

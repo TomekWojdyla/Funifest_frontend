@@ -1,8 +1,10 @@
-/* RIGGER NIE POTRZEBA WŁASNEGO LAYOUTU
-   korzystamy z manifest.css */
+:root {
+  --rigger-nav-active: var(--theme-accent-rigger);
+  --rigger-modal-overlay: var(--theme-modal-overlay);
+}
 
 .nav-link.is-active {
-  color: #ff9f4d;
+  color: var(--rigger-nav-active);
   font-weight: 700;
 }
 
@@ -12,7 +14,7 @@
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--rigger-modal-overlay);
   display: none;
   align-items: center;
   justify-content: center;
