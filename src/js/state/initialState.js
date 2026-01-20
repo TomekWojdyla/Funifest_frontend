@@ -14,8 +14,15 @@ export function createInitialState(source = 'skip') {
 
         parachutes: [],
 
+        plans: {
+            list: [],
+            activeId: null,
+            activeStatus: 'Draft',
+        },
+
         flightPlan: {
             aircraft: 'CESSNA_182',
+            time: '',
             exitPlanId: null,
             slots: [],
         },

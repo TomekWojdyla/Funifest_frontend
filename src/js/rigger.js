@@ -1,10 +1,6 @@
 import { getState, setState, subscribe } from './state/state.js';
 import { api } from './api/api.js';
-import {
-    getParachuteLabel,
-    setParachuteStatus,
-    showError,
-} from './helpers/helpers.js';
+import { getParachuteLabel, isParachuteBlocked, showError } from './helpers/helpers.js';
 
 /* =========================
    MODAL
@@ -27,11 +23,7 @@ document.getElementById('cancelParachute').onclick = () =>
 ========================= */
 function renderRigger() {
     const { parachutes } = getState();
-
-    renderParachutes(
-        parachutes.filter((p) => p.status !== 'ASSIGNED'),
-        'dropzoneParachutes'
-    );
+    renderParachutes(parachutes, 'dropzoneParachutes');
 }
 
 /* =========================
@@ -42,27 +34,35 @@ function renderParachutes(list, targetId) {
     target.innerHTML = '';
 
     list.forEach((p) => {
+        const blocked = isParachuteBlocked(p);
+        const inUse = !p.manualBlocked && p.assignedExitPlanId !== null;
+        const toggleLabel = p.manualBlocked ? 'Przywróć' : inUse ? 'W użyciu' : 'Zablokuj';
+
         const el = document.createElement('div');
-        el.className = `card ${p.status === 'BLOCKED' ? 'blocked' : ''}`;
+        el.className = `card ${blocked ? 'blocked' : ''}`;
 
         el.innerHTML = `
       <div class="card-name">
         ${getParachuteLabel(p)}
-        ${p.status === 'BLOCKED' ? '🔒' : ''}
       </div>
       <div class="card-meta">
         ${p.model} · ${p.size} · ${p.type}
+        ${p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : ''}
       </div>
       <div class="card-actions">
         <button class="btn btn--small toggle">
-          ${p.status === 'BLOCKED' ? 'Odblokuj' : 'Zablokuj'}
+          ${toggleLabel}
         </button>
         <button class="btn btn--small danger">Usuń</button>
       </div>
     `;
 
-        el.querySelector('.toggle').onclick = () =>
-            toggleParachute(p.id, p.status);
+        const toggleBtn = el.querySelector('.toggle');
+        toggleBtn.disabled = inUse;
+
+        if (!inUse) {
+            toggleBtn.onclick = () => toggleParachute(p.id, p.manualBlocked);
+        }
 
         el.querySelector('.danger').onclick = () => removeParachute(p.id);
 
@@ -71,17 +71,18 @@ function renderParachutes(list, targetId) {
 }
 
 /* =========================
-   ACTIONS (DRAFT / CACHE)
+   ACTIONS (BE)
 ========================= */
-function toggleParachute(id, status) {
-    setState((state) => {
-        setParachuteStatus(
-            state,
-            id,
-            status === 'BLOCKED' ? 'AVAILABLE' : 'BLOCKED'
-        );
-        return state;
-    }, 'parachutes');
+async function toggleParachute(id, isManualBlocked) {
+    try {
+        if (isManualBlocked) await api.unblockParachute(id);
+        else await api.blockParachute(id);
+
+        await syncParachutesFromApi();
+    } catch (e) {
+        showError(e);
+        await syncParachutesFromApi();
+    }
 }
 
 async function removeParachute(id) {
@@ -147,7 +148,10 @@ async function syncParachutesFromApi() {
                 size: p.size,
                 type: p.type,
                 customName: p.customName ?? null,
-                status: 'AVAILABLE',
+
+                manualBlocked: p.manualBlocked === true,
+                manualBlockedByExitPlanId: p.manualBlockedByExitPlanId ?? null,
+                assignedExitPlanId: p.assignedExitPlanId ?? null,
             }));
             return state;
         }, 'parachutes');

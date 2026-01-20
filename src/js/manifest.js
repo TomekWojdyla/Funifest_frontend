@@ -1,11 +1,6 @@
 import { getState, setState, subscribe } from './state/state.js';
 import { api } from './api/api.js';
-import {
-    fullName,
-    isStaff,
-    setPersonStatus,
-    showError,
-} from './helpers/helpers.js';
+import { fullName, isStaff, isPersonBlocked, showError } from './helpers/helpers.js';
 
 /* =========================
    DOM
@@ -94,28 +89,37 @@ function renderPeople(list, targetId, type) {
     target.innerHTML = '';
 
     list.forEach((p) => {
+        const blocked = isPersonBlocked(p);
+        const inPlan = !p.manualBlocked && p.assignedExitPlanId !== null;
+        const toggleLabel = p.manualBlocked ? 'Przywróć' : inPlan ? 'W planie' : 'Zablokuj';
+
+
         const el = document.createElement('div');
-        el.className = `card ${p.status === 'BLOCKED' ? 'blocked' : ''}`;
+        el.className = `card ${blocked ? 'blocked' : ''}`;
 
         el.innerHTML = `
       <div class="card-name">
-        ${fullName(p)} ${p.status === 'BLOCKED' ? '🔒' : ''}
+        ${fullName(p)}
       </div>
       <div class="card-meta">
         ${p.weight} kg
         ${type === 'skydiver' ? `· ${p.licenseLevel} · ${p.role}` : ''}
+        ${p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : ''}
       </div>
       <div class="card-actions">
         <button class="btn btn--small toggle">
-          ${p.status === 'BLOCKED' ? 'Odblokuj' : 'Zablokuj'}
+            ${toggleLabel}
         </button>
         <button class="btn btn--small danger">Usuń</button>
       </div>
     `;
 
-        el.querySelector('.toggle').onclick = () =>
-            togglePerson(p.id, type, p.status);
+        const toggleBtn = el.querySelector('.toggle');
+        toggleBtn.disabled = inPlan;
 
+        if (!inPlan) {
+            toggleBtn.onclick = () => togglePerson(p.id, type, p.manualBlocked);
+        }
         el.querySelector('.danger').onclick = () => removePerson(p.id, type);
 
         target.appendChild(el);
@@ -123,18 +127,23 @@ function renderPeople(list, targetId, type) {
 }
 
 /* =========================
-   ACTIONS (CACHE)
+   ACTIONS (BE)
 ========================= */
-function togglePerson(id, type, status) {
-    setState((state) => {
-        setPersonStatus(
-            state,
-            id,
-            type,
-            status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED'
-        );
-        return state;
-    }, 'people');
+async function togglePerson(id, type, isManualBlocked) {
+    try {
+        if (type === 'skydiver') {
+            if (isManualBlocked) await api.unblockSkydiver(id);
+            else await api.blockSkydiver(id);
+        } else {
+            if (isManualBlocked) await api.unblockPassenger(id);
+            else await api.blockPassenger(id);
+        }
+
+        await syncPeopleFromApi();
+    } catch (e) {
+        showError(e);
+        await syncPeopleFromApi();
+    }
 }
 
 async function removePerson(id, type) {
@@ -251,7 +260,10 @@ async function syncPeopleFromApi() {
             isAffInstructor: s.isAFFInstructor,
             isTandemInstructor: s.isTandemInstructor,
             parachuteId: s.parachuteId ?? null,
-            status: 'ACTIVE',
+
+            manualBlocked: s.manualBlocked === true,
+            manualBlockedByExitPlanId: s.manualBlockedByExitPlanId ?? null,
+            assignedExitPlanId: s.assignedExitPlanId ?? null,
         }));
 
         state.people.passengers = (passengers || []).map((p) => ({
@@ -259,7 +271,10 @@ async function syncPeopleFromApi() {
             firstName: p.firstName,
             lastName: p.lastName,
             weight: p.weight ?? 0,
-            status: 'ACTIVE',
+
+            manualBlocked: p.manualBlocked === true,
+            manualBlockedByExitPlanId: p.manualBlockedByExitPlanId ?? null,
+            assignedExitPlanId: p.assignedExitPlanId ?? null,
         }));
 
         return state;

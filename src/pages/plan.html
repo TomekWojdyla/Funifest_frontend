@@ -43,8 +43,12 @@
         <div class="cards" id="plan-passengers"></div>
       </aside>
 
-      <section class="plan-right">
-        <h3>CESSNA 182</h3>
+      <div id="plan-message" class="plan-message plan-message--panel" role="status" aria-live="polite"></div>
+
+      <section class="plan-center">
+        <div class="plan-aircraft-header">
+          <h3 class="plan-aircraft-name">CESSNA 182</h3>
+        </div>
 
         <div class="aircraft">
           <div class="slot pilot">PILOT</div>
@@ -55,12 +59,35 @@
           <div class="slot" data-slot="5">SLOT 5</div>
         </div>
 
-        <button class="btn btn--primary plan-go" type="button">ZAPISZ PLAN</button>
-        <button class="btn btn--secondary plan-delete" type="button">USUŃ PLAN</button>
+        <div class="plan-actions">
+          <button class="btn btn--primary plan-go" type="button">ZAPISZ</button>
+
+          <button class="btn btn--secondary plan-dispatch" id="plan-dispatch" type="button">
+            WYŚLIJ
+          </button>
+
+          <button class="btn btn--secondary plan-undo" id="plan-undo" type="button">
+            COFNIJ
+          </button>
+
+          <button class="btn btn--secondary plan-delete" type="button">
+            USUŃ
+          </button>
+        </div>
       </section>
+
+      <aside class="plan-drops">
+        <div class="plan-drops-header">
+          <h3>WYRZUTY</h3>
+          <button class="btn btn--primary plan-add" id="plan-add" type="button">
+            DODAJ
+          </button>
+        </div>
+
+        <div class="plan-drops-list" id="plan-list"></div>
+      </aside>
     </main>
 
-    <!-- PARACHUTE SELECT MODAL -->
     <div class="modal" id="parachuteSelectModal">
       <div class="modal-content">
         <h3>Wybierz spadochron</h3>
@@ -71,7 +98,6 @@
       </div>
     </div>
 
-    <!-- TANDEM INSTRUCTOR SELECT MODAL -->
     <div class="modal" id="tandemSelectModal">
       <div class="modal-content">
         <h3>Wybierz instruktora tandemowego</h3>

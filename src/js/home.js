@@ -2,28 +2,6 @@
 
 const HOLD_MS = 2000; // ile ma zostać obrazek po animacji
 
-/* =========================
-   PLAN SAVED BANNER
-========================= */
-const PLAN_SAVED_AT_KEY = 'funifest_last_plan_saved_at';
-
-function applyPlanSavedBanner() {
-    const savedAt = localStorage.getItem(PLAN_SAVED_AT_KEY);
-    if (!savedAt) return;
-
-    const subtitle = document.querySelector('.hero__subtitle');
-    if (!subtitle) return;
-
-    const dt = new Date(savedAt);
-    if (Number.isNaN(dt.getTime())) {
-        subtitle.textContent = 'Plan zapisany';
-        return;
-    }
-
-    subtitle.textContent = `Plan zapisany: ${dt.toLocaleString('pl-PL')}`;
-}
-
-
 function createTransitionLayer(imgSrc) {
     const layer = document.createElement('div');
     layer.className = 'page-transition';
@@ -101,5 +79,5 @@ function setupButtons() {
     });
 }
 
-applyPlanSavedBanner();
 setupButtons();
+

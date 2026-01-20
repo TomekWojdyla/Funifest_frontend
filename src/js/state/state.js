@@ -15,6 +15,64 @@ let state = null;
 const observers = {};
 
 /* =========================
+   NORMALIZATION
+========================= */
+function isPlainObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+function normalizeLoadedState(raw, source = 'load') {
+    const base = createInitialState(source);
+
+    if (!isPlainObject(raw)) return base;
+
+    const rawMeta = isPlainObject(raw.meta) ? raw.meta : {};
+    base.meta = { ...base.meta, ...rawMeta };
+
+    const rawPeople = isPlainObject(raw.people) ? raw.people : {};
+    base.people.skydivers = Array.isArray(rawPeople.skydivers)
+        ? rawPeople.skydivers
+        : base.people.skydivers;
+    base.people.passengers = Array.isArray(rawPeople.passengers)
+        ? rawPeople.passengers
+        : base.people.passengers;
+
+    base.parachutes = Array.isArray(raw.parachutes)
+        ? raw.parachutes
+        : base.parachutes;
+
+    const rawPlans = isPlainObject(raw.plans) ? raw.plans : {};
+    base.plans.list = Array.isArray(rawPlans.list) ? rawPlans.list : base.plans.list;
+    base.plans.activeId =
+        rawPlans.activeId === null || typeof rawPlans.activeId === 'number'
+            ? rawPlans.activeId
+            : base.plans.activeId;
+    base.plans.activeStatus =
+        typeof rawPlans.activeStatus === 'string'
+            ? rawPlans.activeStatus
+            : base.plans.activeStatus;
+
+    const rawFlightPlan = isPlainObject(raw.flightPlan) ? raw.flightPlan : {};
+    base.flightPlan.aircraft =
+        typeof rawFlightPlan.aircraft === 'string'
+            ? rawFlightPlan.aircraft
+            : base.flightPlan.aircraft;
+    base.flightPlan.time =
+        typeof rawFlightPlan.time === 'string'
+            ? rawFlightPlan.time
+            : base.flightPlan.time;
+    base.flightPlan.exitPlanId =
+        rawFlightPlan.exitPlanId === null || typeof rawFlightPlan.exitPlanId === 'number'
+            ? rawFlightPlan.exitPlanId
+            : base.flightPlan.exitPlanId;
+    base.flightPlan.slots = Array.isArray(rawFlightPlan.slots)
+        ? rawFlightPlan.slots
+        : base.flightPlan.slots;
+
+    return base;
+}
+
+/* =========================
    HELPERS
 ========================= */
 function notify(key) {
@@ -22,7 +80,6 @@ function notify(key) {
         observers[key].forEach((cb) => cb(getState()));
     }
 
-    // global observers (*)
     if (observers['*']) {
         observers['*'].forEach((cb) => cb(getState()));
     }
@@ -37,7 +94,7 @@ function persist() {
 ========================= */
 export function initState({ source = 'skip', payload = null } = {}) {
     if (source === 'load' && payload) {
-        state = payload;
+        state = normalizeLoadedState(payload, 'load');
     } else {
         state = createInitialState(source);
     }
@@ -75,7 +132,8 @@ export function loadStateFromStorage() {
     if (!saved) return false;
 
     try {
-        state = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        state = normalizeLoadedState(parsed, 'load');
         notify('*');
         return true;
     } catch (e) {

@@ -34,30 +34,14 @@ export const isStaff = (s) =>
     s.isTandemInstructor;
 
 /* =========================
-   STATUS – PERSON
+   LOCKS – SOURCE OF TRUTH (BE)
 ========================= */
-export function setPersonStatus(state, id, type, status) {
-    const list =
-        type === 'skydiver' ? state.people.skydivers : state.people.passengers;
-
-    const p = list.find((x) => x.id === id);
-    if (p) p.status = status;
+export function isPersonBlocked(p) {
+    return p.manualBlocked === true || p.assignedExitPlanId !== null;
 }
 
-export function isPersonActive(person) {
-    return person.status === 'ACTIVE';
-}
-
-/* =========================
-   STATUS – PARACHUTE
-========================= */
-export function setParachuteStatus(state, id, status) {
-    const p = state.parachutes.find((x) => x.id === id);
-    if (p) p.status = status;
-}
-
-export function isParachuteAvailable(p) {
-    return p.status === 'AVAILABLE';
+export function isParachuteBlocked(p) {
+    return p.manualBlocked === true || p.assignedExitPlanId !== null;
 }
 
 /* =========================
@@ -95,11 +79,11 @@ export function getAvailablePeople(state, type) {
     const list =
         type === 'skydiver' ? state.people.skydivers : state.people.passengers;
 
-    return list.filter((p) => p.status === 'ACTIVE');
+    return list.filter((p) => !isPersonBlocked(p));
 }
 
 export function getAvailableParachutes(state) {
-    return state.parachutes.filter((p) => p.status === 'AVAILABLE');
+    return state.parachutes.filter((p) => !isParachuteBlocked(p));
 }
 
 /* =========================
@@ -150,3 +134,46 @@ export function validateTandemRules(state) {
 
     return Object.values(usage).every((c) => c === 1);
 }
+
+/* =========================
+   VALIDATION – STUDENT (AFF)
+========================= */
+export function isStudentRole(role) {
+    if (!role || typeof role !== 'string') return false;
+    return role === 'Student' || role === 'StudentAffEntry' || role === 'StudentAffAdvanced';
+}
+
+function isEligibleInstructorForStudent(person) {
+    if (!person) return false;
+    return person.isAffInstructor === true || person.role === 'Instructor' || person.role === 'Examiner';
+}
+
+export function validateStudentRules(state) {
+    const slots = state.flightPlan.slots;
+
+    const skydiverSlots = slots.filter((s) => s.personType === 'skydiver');
+    const passengerSlots = slots.filter((s) => s.personType === 'passenger');
+
+    const studentPresent = skydiverSlots.some((s) => {
+        const p = getPersonById(state, s.personId, 'skydiver');
+        return p && isStudentRole(p.role);
+    });
+
+    if (!studentPresent) return true;
+
+    const tandemInstructorIds = new Set(
+        passengerSlots
+            .map((p) => p.tandemInstructorId)
+            .filter((id) => id !== null && id !== undefined)
+    );
+
+    const hasNonTandemInstructor = skydiverSlots.some((s) => {
+        const p = getPersonById(state, s.personId, 'skydiver');
+        if (!isEligibleInstructorForStudent(p)) return false;
+        return !tandemInstructorIds.has(p.id);
+    });
+
+    return hasNonTandemInstructor;
+}
+
+
