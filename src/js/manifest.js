@@ -1,5 +1,5 @@
 import { getState, setState, subscribe } from './state/state.js';
-import { api } from './api/api.js';
+import { api, isOfflineMode } from './api/api.js';
 import { fullName, isStaff, isPersonBlocked, showError } from './helpers/helpers.js';
 import { mapPeopleDto } from './mappers/peopleMapper.js';
 import { renderCards } from './ui/cards.js';
@@ -111,10 +111,27 @@ function renderPeopleCards(list, targetId, type) {
     renderCards(targetId, cards);
 }
 
+
 /* =========================
    ACTIONS (BE)
 ========================= */
 async function togglePerson(id, type, isManualBlocked) {
+    if (isOfflineMode()) {
+        setState((state) => {
+            if (type === 'skydiver') {
+                state.people.skydivers = state.people.skydivers.map((p) =>
+                    p.id === id ? { ...p, manualBlocked: !isManualBlocked } : p
+                );
+            } else {
+                state.people.passengers = state.people.passengers.map((p) =>
+                    p.id === id ? { ...p, manualBlocked: !isManualBlocked } : p
+                );
+            }
+            return state;
+        }, 'people');
+        return;
+    }
+
     try {
         if (type === 'skydiver') {
             if (isManualBlocked) await api.unblockSkydiver(id);
@@ -127,7 +144,9 @@ async function togglePerson(id, type, isManualBlocked) {
         await syncPeopleFromApi();
     } catch (e) {
         showError(e);
-        await syncPeopleFromApi();
+        if (!isOfflineMode()) {
+            await syncPeopleFromApi();
+        }
     }
 }
 
@@ -141,6 +160,10 @@ async function removePerson(id, type) {
         return state;
     }, 'people');
 
+    if (isOfflineMode()) {
+        return;
+    }
+
     try {
         if (type === 'skydiver') {
             await api.deleteSkydiver(id);
@@ -151,7 +174,9 @@ async function removePerson(id, type) {
         await syncPeopleFromApi();
     } catch (e) {
         showError(e);
-        await syncPeopleFromApi();
+        if (!isOfflineMode()) {
+            await syncPeopleFromApi();
+        }
     }
 }
 
@@ -176,6 +201,33 @@ saveSkydiverBtn.onclick = async () => {
         return;
     }
 
+    if (isOfflineMode()) {
+        setState((state) => {
+            const maxId = Math.max(0, ...state.people.skydivers.map((p) => p.id || 0));
+            const newId = maxId + 1;
+
+            state.people.skydivers.push({
+                id: newId,
+                firstName,
+                lastName,
+                weight: weight ?? 0,
+                licenseLevel,
+                role,
+                isAffInstructor: sdAFF.checked,
+                isTandemInstructor: sdTandem.checked,
+                parachuteId: null,
+                manualBlocked: false,
+                manualBlockedByExitPlanId: null,
+                assignedExitPlanId: null,
+            });
+
+            return state;
+        }, 'people');
+
+        closeModal();
+        return;
+    }
+
     try {
         await api.createSkydiver({
             firstName,
@@ -185,6 +237,7 @@ saveSkydiverBtn.onclick = async () => {
             role,
             isAFFInstructor: sdAFF.checked,
             isTandemInstructor: sdTandem.checked,
+            parachuteId: null,
             parachuteId: null,
         });
 
@@ -211,6 +264,28 @@ savePassengerBtn.onclick = async () => {
         return;
     }
 
+    if (isOfflineMode()) {
+        setState((state) => {
+            const maxId = Math.max(0, ...state.people.passengers.map((p) => p.id || 0));
+            const newId = maxId + 1;
+
+            state.people.passengers.push({
+                id: newId,
+                firstName,
+                lastName,
+                weight: weight ?? 0,
+                manualBlocked: false,
+                manualBlockedByExitPlanId: null,
+                assignedExitPlanId: null,
+            });
+
+            return state;
+        }, 'people');
+
+        closeModal();
+        return;
+    }
+
     try {
         await api.createPassenger({
             firstName,
@@ -229,6 +304,8 @@ savePassengerBtn.onclick = async () => {
    SYNC (GET → STATE)
 ========================= */
 async function syncPeopleFromApi() {
+    if (isOfflineMode()) return;
+
     const [skydivers, passengers] = await Promise.all([
         api.getSkydivers(),
         api.getPassengers(),
@@ -249,6 +326,8 @@ subscribe('people', renderManifest);
 renderManifest();
 
 (async () => {
+    if (isOfflineMode()) return;
+
     try {
         await syncPeopleFromApi();
     } catch (e) {

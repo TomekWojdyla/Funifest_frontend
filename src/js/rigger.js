@@ -1,5 +1,5 @@
 import { getState, setState, subscribe } from './state/state.js';
-import { api } from './api/api.js';
+import { api, isOfflineMode } from './api/api.js';
 import { getParachuteLabel, isParachuteBlocked, showError } from './helpers/helpers.js';
 import { mapParachutesDto } from './mappers/parachuteMapper.js';
 import { renderCards } from './ui/cards.js';
@@ -55,6 +55,16 @@ function renderParachuteCards(list, targetId) {
    ACTIONS (BE)
 ========================= */
 async function toggleParachute(id, isManualBlocked) {
+    if (isOfflineMode()) {
+        setState((state) => {
+            state.parachutes = state.parachutes.map((p) =>
+                p.id === id ? { ...p, manualBlocked: !isManualBlocked } : p
+            );
+            return state;
+        }, 'parachutes');
+        return;
+    }
+
     try {
         if (isManualBlocked) await api.unblockParachute(id);
         else await api.blockParachute(id);
@@ -62,7 +72,9 @@ async function toggleParachute(id, isManualBlocked) {
         await syncParachutesFromApi();
     } catch (e) {
         showError(e);
-        await syncParachutesFromApi();
+        if (!isOfflineMode()) {
+            await syncParachutesFromApi();
+        }
     }
 }
 
@@ -72,12 +84,18 @@ async function removeParachute(id) {
         return state;
     }, 'parachutes');
 
+    if (isOfflineMode()) {
+        return;
+    }
+
     try {
         await api.deleteParachute(id);
         await syncParachutesFromApi();
     } catch (e) {
         showError(e);
-        await syncParachutesFromApi();
+        if (!isOfflineMode()) {
+            await syncParachutesFromApi();
+        }
     }
 }
 
@@ -92,6 +110,34 @@ saveParachuteBtn.onclick = async () => {
 
     if (!model || !size || !type) {
         alert('Uzupełnij wymagane pola');
+        return;
+    }
+
+    if (isOfflineMode()) {
+        setState((state) => {
+            const maxId = Math.max(0, ...state.parachutes.map((p) => p.id || 0));
+            const newId = maxId + 1;
+
+            state.parachutes.push({
+                id: newId,
+                model,
+                size,
+                type,
+                customName: customName || null,
+                manualBlocked: false,
+                manualBlockedByExitPlanId: null,
+                assignedExitPlanId: null,
+            });
+
+            return state;
+        }, 'parachutes');
+
+        pcCustomName.value = '';
+        pcModel.value = '';
+        pcSize.value = '';
+        pcType.value = '';
+
+        modal.classList.remove('active');
         return;
     }
 
@@ -119,6 +165,8 @@ saveParachuteBtn.onclick = async () => {
    SYNC (GET → STATE)
 ========================= */
 async function syncParachutesFromApi() {
+    if (isOfflineMode()) return;
+
     try {
         const parachutes = await api.getParachutes();
 
@@ -136,4 +184,6 @@ async function syncParachutesFromApi() {
 ========================= */
 subscribe('parachutes', renderRigger);
 renderRigger();
-syncParachutesFromApi();
+if (!isOfflineMode()) {
+    syncParachutesFromApi();
+}

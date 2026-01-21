@@ -1,4 +1,5 @@
 import { getState, setState, subscribe } from './state/state.js';
+import { isOfflineMode } from './api/api.js';
 import { getNowTimeValue, initPlanLeftCollapsibles, normalizeTimeValue } from './plan/core.js';
 import { initPlanDragAndDrop } from './plan/dnd.js';
 import { renderPlan } from './plan/render.js';
@@ -59,4 +60,6 @@ if (!normalizeTimeValue(init.flightPlan.time)) {
     }, 'flightPlan');
 }
 
-syncFromApi();
+if (!isOfflineMode()) {
+    syncFromApi();
+}

@@ -65,6 +65,12 @@ function setupButtons() {
         a.addEventListener('click', (e) => {
             e.preventDefault();
 
+            if (a.id === 'btnPlanner') {
+                sessionStorage.setItem('funifest_entry_planner', '1');
+                sessionStorage.removeItem('funifest_planista_done');
+                sessionStorage.removeItem('funifest_mode');
+            }
+
             if (document.body.dataset.transitioning === '1') return;
             document.body.dataset.transitioning = '1';
 
@@ -80,4 +86,3 @@ function setupButtons() {
 }
 
 setupButtons();
-

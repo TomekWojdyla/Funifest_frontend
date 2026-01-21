@@ -3,6 +3,20 @@
 ========================= */
 export const BASE_URL = 'http://localhost:5030/api';
 
+export function getAppMode() {
+    return sessionStorage.getItem('funifest_mode') || 'online';
+}
+
+export function isOfflineMode() {
+    const m = getAppMode();
+    return m === 'offline' || m === 'offline-lost';
+}
+
+export function markOfflineLostSignal() {
+    sessionStorage.setItem('funifest_mode', 'offline-lost');
+}
+
+
 /* =========================
    CORE FETCH
 ========================= */
@@ -25,6 +39,7 @@ export async function fetchJson(path, options = {}) {
     try {
         response = await fetch(url, { ...options, headers, body });
     } catch {
+        markOfflineLostSignal();
         throw new Error('Network error');
     }
 

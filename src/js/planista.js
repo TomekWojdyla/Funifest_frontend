@@ -3,15 +3,33 @@ const btnSkip = document.getElementById('btnSkip');
 const statusMessage = document.getElementById('statusMessage');
 const navLinks = document.querySelectorAll('.nav-link');
 const clock = document.querySelector('.clock');
-const subtitle = document.getElementById('subtitle');
-const buttons = document.getElementById('buttons');
 
 /* =========================
    STORAGE KEYS
 ========================= */
+const ENTRY_KEY = 'funifest_entry_planner';
+const DONE_KEY = 'funifest_planista_done';
+const MODE_KEY = 'funifest_mode';
+
 const STORAGE_KEY = 'funifest_app_state';
 const PLAN_SAVED_AT_KEY = 'funifest_last_plan_saved_at';
 const PLAN_SAVED_ID_KEY = 'funifest_last_exit_plan_id';
+
+/* =========================
+   ENTRY GUARD
+========================= */
+function guardEntry() {
+    const ok = sessionStorage.getItem(ENTRY_KEY) === '1';
+    if (ok) return true;
+
+    window.location.replace('../../index.html');
+    return false;
+}
+
+function markPlanistaDone(mode) {
+    sessionStorage.setItem(DONE_KEY, '1');
+    if (mode) sessionStorage.setItem(MODE_KEY, mode);
+}
 
 /* =========================
    CLOCK
@@ -49,39 +67,8 @@ function unlockNavigation(message) {
     });
 }
 
-function lockChoiceButtons() {
-    btnLoad.classList.add('is-disabled');
-    btnSkip.classList.add('is-disabled');
-    btnLoad.disabled = true;
-    btnSkip.disabled = true;
-}
-
-function hideChoiceButtons() {
-    if (buttons) buttons.style.display = 'none';
-}
-
 /* =========================
-   PLAN SAVED MODE
-========================= */
-function tryEnterPlanSavedMode() {
-    const savedAt = localStorage.getItem(PLAN_SAVED_AT_KEY);
-    if (!savedAt) return false;
-
-    const dt = new Date(savedAt);
-    const dateText = Number.isNaN(dt.getTime())
-        ? 'Plan został zapisany'
-        : `Plan zapisany: ${dt.toLocaleString('pl-PL')}`;
-
-    if (subtitle) subtitle.textContent = dateText;
-
-    hideChoiceButtons();
-    unlockNavigation('Plan gotowy. Przejdź dalej z menu.');
-
-    return true;
-}
-
-/* =========================
-   CHOICE HANDLER
+   BUTTON CHOICE HANDLER
 ========================= */
 function handleChoice(selectedBtn, otherBtn, message) {
     selectedBtn.classList.add('is-selected');
@@ -92,12 +79,11 @@ function handleChoice(selectedBtn, otherBtn, message) {
 }
 
 btnLoad.addEventListener('click', () => {
-    lockChoiceButtons();
-    handleChoice(
-        btnLoad,
-        btnSkip,
-        'Cache zostaje. Przejdź dalej z menu.'
-    );
+    btnLoad.disabled = true;
+    btnSkip.disabled = true;
+
+    markPlanistaDone('online');
+    handleChoice(btnLoad, btnSkip, 'Tryb online (BE). Przejdź dalej z menu.');
 });
 
 btnSkip.addEventListener('click', () => {
@@ -105,15 +91,14 @@ btnSkip.addEventListener('click', () => {
     localStorage.removeItem(PLAN_SAVED_AT_KEY);
     localStorage.removeItem(PLAN_SAVED_ID_KEY);
 
-    lockChoiceButtons();
-    handleChoice(
-        btnSkip,
-        btnLoad,
-        'Cache wyczyszczony. Przejdź dalej z menu.'
-    );
+    btnLoad.disabled = true;
+    btnSkip.disabled = true;
+
+    markPlanistaDone('offline');
+    handleChoice(btnSkip, btnLoad, 'Tryb offline. Przejdź dalej z menu.');
 });
 
 /* =========================
    INIT
 ========================= */
-tryEnterPlanSavedMode();
+guardEntry();
