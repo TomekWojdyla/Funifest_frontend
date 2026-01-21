@@ -1,6 +1,8 @@
 import { getState, setState, subscribe } from './state/state.js';
 import { api } from './api/api.js';
 import { fullName, isStaff, isPersonBlocked, showError } from './helpers/helpers.js';
+import { mapPeopleDto } from './mappers/peopleMapper.js';
+import { renderCards } from './ui/cards.js';
 
 /* =========================
    DOM
@@ -63,67 +65,50 @@ addPassengerBtn.onclick = () => openPassengerModal();
 /* =========================
    RENDER
 ========================= */
-function renderManifest() {
-    const { people } = getState();
+function renderManifest(snapshot = null) {
+    const { people } = snapshot || getState();
 
-    renderPeople(
+
+    renderPeopleCards(
         people.skydivers.filter((s) => !isStaff(s)),
         'funjumpers',
         'skydiver'
     );
 
-    renderPeople(
+    renderPeopleCards(
         people.skydivers.filter((s) => isStaff(s)),
         'staff',
         'skydiver'
     );
 
-    renderPeople(people.passengers, 'passengers', 'passenger');
+    renderPeopleCards(people.passengers, 'passengers', 'passenger');
 }
 
 /* =========================
-   UI HELPERS
+   UI
 ========================= */
-function renderPeople(list, targetId, type) {
-    const target = document.getElementById(targetId);
-    target.innerHTML = '';
-
-    list.forEach((p) => {
+function renderPeopleCards(list, targetId, type) {
+    const cards = (list || []).map((p) => {
         const blocked = isPersonBlocked(p);
         const inPlan = !p.manualBlocked && p.assignedExitPlanId !== null;
         const toggleLabel = p.manualBlocked ? 'Przywróć' : inPlan ? 'W planie' : 'Zablokuj';
 
+        const rolePart = type === 'skydiver' ? `· ${p.licenseLevel} · ${p.role}` : '';
+        const planPart = p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : '';
+        const metaHtml = `${p.weight} kg ${rolePart} ${planPart}`.trim();
 
-        const el = document.createElement('div');
-        el.className = `card ${blocked ? 'blocked' : ''}`;
-
-        el.innerHTML = `
-      <div class="card-name">
-        ${fullName(p)}
-      </div>
-      <div class="card-meta">
-        ${p.weight} kg
-        ${type === 'skydiver' ? `· ${p.licenseLevel} · ${p.role}` : ''}
-        ${p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : ''}
-      </div>
-      <div class="card-actions">
-        <button class="btn btn--small toggle">
-            ${toggleLabel}
-        </button>
-        <button class="btn btn--small danger">Usuń</button>
-      </div>
-    `;
-
-        const toggleBtn = el.querySelector('.toggle');
-        toggleBtn.disabled = inPlan;
-
-        if (!inPlan) {
-            toggleBtn.onclick = () => togglePerson(p.id, type, p.manualBlocked);
-        }
-        el.querySelector('.danger').onclick = () => removePerson(p.id, type);
-
-        target.appendChild(el);
+        return {
+            title: fullName(p),
+            metaHtml,
+            isBlocked: blocked,
+            toggleLabel,
+            toggleDisabled: inPlan,
+            onToggle: inPlan ? null : () => togglePerson(p.id, type, p.manualBlocked),
+            onDelete: () => removePerson(p.id, type),
+        };
     });
+
+    renderCards(targetId, cards);
 }
 
 /* =========================
@@ -250,33 +235,9 @@ async function syncPeopleFromApi() {
     ]);
 
     setState((state) => {
-        state.people.skydivers = (skydivers || []).map((s) => ({
-            id: s.id,
-            firstName: s.firstName,
-            lastName: s.lastName,
-            weight: s.weight ?? 0,
-            licenseLevel: s.licenseLevel,
-            role: s.role,
-            isAffInstructor: s.isAFFInstructor,
-            isTandemInstructor: s.isTandemInstructor,
-            parachuteId: s.parachuteId ?? null,
-
-            manualBlocked: s.manualBlocked === true,
-            manualBlockedByExitPlanId: s.manualBlockedByExitPlanId ?? null,
-            assignedExitPlanId: s.assignedExitPlanId ?? null,
-        }));
-
-        state.people.passengers = (passengers || []).map((p) => ({
-            id: p.id,
-            firstName: p.firstName,
-            lastName: p.lastName,
-            weight: p.weight ?? 0,
-
-            manualBlocked: p.manualBlocked === true,
-            manualBlockedByExitPlanId: p.manualBlockedByExitPlanId ?? null,
-            assignedExitPlanId: p.assignedExitPlanId ?? null,
-        }));
-
+        const people = mapPeopleDto(skydivers, passengers);
+        state.people.skydivers = people.skydivers;
+        state.people.passengers = people.passengers;
         return state;
     }, 'people');
 }

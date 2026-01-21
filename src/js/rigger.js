@@ -1,6 +1,8 @@
 import { getState, setState, subscribe } from './state/state.js';
 import { api } from './api/api.js';
 import { getParachuteLabel, isParachuteBlocked, showError } from './helpers/helpers.js';
+import { mapParachutesDto } from './mappers/parachuteMapper.js';
+import { renderCards } from './ui/cards.js';
 
 /* =========================
    MODAL
@@ -12,62 +14,41 @@ const pcSize = document.getElementById('pcSize');
 const pcType = document.getElementById('pcType');
 const saveParachuteBtn = document.getElementById('saveParachute');
 
-document.getElementById('addParachute').onclick = () =>
-    modal.classList.add('active');
-
-document.getElementById('cancelParachute').onclick = () =>
-    modal.classList.remove('active');
+document.getElementById('addParachute').onclick = () => modal.classList.add('active');
+document.getElementById('cancelParachute').onclick = () => modal.classList.remove('active');
 
 /* =========================
    RENDER
 ========================= */
-function renderRigger() {
-    const { parachutes } = getState();
-    renderParachutes(parachutes, 'dropzoneParachutes');
+function renderRigger(snapshot = null) {
+    const { parachutes } = snapshot || getState();
+    renderParachuteCards(parachutes, 'dropzoneParachutes');
 }
 
 /* =========================
    UI
 ========================= */
-function renderParachutes(list, targetId) {
-    const target = document.getElementById(targetId);
-    target.innerHTML = '';
-
-    list.forEach((p) => {
+function renderParachuteCards(list, targetId) {
+    const cards = (list || []).map((p) => {
         const blocked = isParachuteBlocked(p);
         const inUse = !p.manualBlocked && p.assignedExitPlanId !== null;
         const toggleLabel = p.manualBlocked ? 'Przywróć' : inUse ? 'W użyciu' : 'Zablokuj';
 
-        const el = document.createElement('div');
-        el.className = `card ${blocked ? 'blocked' : ''}`;
+        const planPart = p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : '';
+        const metaHtml = `${p.model} · ${p.size} · ${p.type} ${planPart}`.trim();
 
-        el.innerHTML = `
-      <div class="card-name">
-        ${getParachuteLabel(p)}
-      </div>
-      <div class="card-meta">
-        ${p.model} · ${p.size} · ${p.type}
-        ${p.assignedExitPlanId !== null ? `· PLAN #${p.assignedExitPlanId}` : ''}
-      </div>
-      <div class="card-actions">
-        <button class="btn btn--small toggle">
-          ${toggleLabel}
-        </button>
-        <button class="btn btn--small danger">Usuń</button>
-      </div>
-    `;
-
-        const toggleBtn = el.querySelector('.toggle');
-        toggleBtn.disabled = inUse;
-
-        if (!inUse) {
-            toggleBtn.onclick = () => toggleParachute(p.id, p.manualBlocked);
-        }
-
-        el.querySelector('.danger').onclick = () => removeParachute(p.id);
-
-        target.appendChild(el);
+        return {
+            title: getParachuteLabel(p),
+            metaHtml,
+            isBlocked: blocked,
+            toggleLabel,
+            toggleDisabled: inUse,
+            onToggle: inUse ? null : () => toggleParachute(p.id, p.manualBlocked),
+            onDelete: () => removeParachute(p.id),
+        };
     });
+
+    renderCards(targetId, cards);
 }
 
 /* =========================
@@ -142,17 +123,7 @@ async function syncParachutesFromApi() {
         const parachutes = await api.getParachutes();
 
         setState((state) => {
-            state.parachutes = (parachutes || []).map((p) => ({
-                id: p.id,
-                model: p.model,
-                size: p.size,
-                type: p.type,
-                customName: p.customName ?? null,
-
-                manualBlocked: p.manualBlocked === true,
-                manualBlockedByExitPlanId: p.manualBlockedByExitPlanId ?? null,
-                assignedExitPlanId: p.assignedExitPlanId ?? null,
-            }));
+            state.parachutes = mapParachutesDto(parachutes);
             return state;
         }, 'parachutes');
     } catch (e) {

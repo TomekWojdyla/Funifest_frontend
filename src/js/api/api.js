@@ -64,28 +64,45 @@ export async function fetchJson(path, options = {}) {
    ENDPOINTS
 ========================= */
 export const api = {
-    // People
+    /* =========================
+       PEOPLE: SKYDIVERS
+    ========================= */
     getSkydivers: () => fetchJson('/skydiver'),
-    getPassengers: () => fetchJson('/passenger'),
-
+    createSkydiver: (payload) =>
+        fetchJson('/skydiver', { method: 'POST', body: payload }),
+    deleteSkydiver: (id) => fetchJson(`/skydiver/${id}`, { method: 'DELETE' }),
     blockSkydiver: (id) => fetchJson(`/skydiver/${id}/block`, { method: 'PUT' }),
     unblockSkydiver: (id) =>
         fetchJson(`/skydiver/${id}/unblock`, { method: 'PUT' }),
 
+    /* =========================
+       PEOPLE: PASSENGERS
+    ========================= */
+    getPassengers: () => fetchJson('/passenger'),
+    createPassenger: (payload) =>
+        fetchJson('/passenger', { method: 'POST', body: payload }),
+    deletePassenger: (id) =>
+        fetchJson(`/passenger/${id}`, { method: 'DELETE' }),
     blockPassenger: (id) =>
         fetchJson(`/passenger/${id}/block`, { method: 'PUT' }),
     unblockPassenger: (id) =>
         fetchJson(`/passenger/${id}/unblock`, { method: 'PUT' }),
 
-    // Parachutes
+    /* =========================
+       PARACHUTES
+    ========================= */
     getParachutes: () => fetchJson('/parachute'),
-
+    createParachute: (payload) =>
+        fetchJson('/parachute', { method: 'POST', body: payload }),
+    deleteParachute: (id) => fetchJson(`/parachute/${id}`, { method: 'DELETE' }),
     blockParachute: (id) =>
         fetchJson(`/parachute/${id}/block`, { method: 'PUT' }),
     unblockParachute: (id) =>
         fetchJson(`/parachute/${id}/unblock`, { method: 'PUT' }),
 
-    // Exit plans
+    /* =========================
+       EXIT PLANS
+    ========================= */
     getExitPlans: () => fetchJson('/exitplan'),
     getExitPlanById: (id) => fetchJson(`/exitplan/${id}`),
 
@@ -99,18 +116,4 @@ export const api = {
         fetchJson(`/exitplan/${id}/dispatch`, { method: 'POST' }),
     undoDispatchExitPlan: (id) =>
         fetchJson(`/exitplan/${id}/undo-dispatch`, { method: 'POST' }),
-
-    // POST/DELETE
-    createSkydiver: (payload) =>
-        fetchJson('/skydiver', { method: 'POST', body: payload }),
-    deleteSkydiver: (id) => fetchJson(`/skydiver/${id}`, { method: 'DELETE' }),
-
-    createPassenger: (payload) =>
-        fetchJson('/passenger', { method: 'POST', body: payload }),
-    deletePassenger: (id) =>
-        fetchJson(`/passenger/${id}`, { method: 'DELETE' }),
-
-    createParachute: (payload) =>
-        fetchJson('/parachute', { method: 'POST', body: payload }),
-    deleteParachute: (id) => fetchJson(`/parachute/${id}`, { method: 'DELETE' }),
 };

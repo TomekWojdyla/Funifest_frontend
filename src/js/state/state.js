@@ -1,6 +1,22 @@
-// src/js/state/state.js
-
 import { createInitialState } from './initialState.js';
+
+const STORAGE_WRITE_DELAY_MS = 150;
+
+let pendingPersist = false;
+let persistTimer = null;
+
+function schedulePersist() {
+    if (persistTimer) return;
+
+    persistTimer = setTimeout(() => {
+        persistTimer = null;
+
+        if (pendingPersist) {
+            pendingPersist = false;
+            persistStateNow();
+        }
+    }, STORAGE_WRITE_DELAY_MS);
+}
 
 const STORAGE_KEY = 'funifest_app_state';
 
@@ -37,9 +53,7 @@ function normalizeLoadedState(raw, source = 'load') {
         ? rawPeople.passengers
         : base.people.passengers;
 
-    base.parachutes = Array.isArray(raw.parachutes)
-        ? raw.parachutes
-        : base.parachutes;
+    base.parachutes = Array.isArray(raw.parachutes) ? raw.parachutes : base.parachutes;
 
     const rawPlans = isPlainObject(raw.plans) ? raw.plans : {};
     base.plans.list = Array.isArray(rawPlans.list) ? rawPlans.list : base.plans.list;
@@ -76,17 +90,27 @@ function normalizeLoadedState(raw, source = 'load') {
    HELPERS
 ========================= */
 function notify(key) {
+    const snapshot = structuredClone(state);
+
     if (observers[key]) {
-        observers[key].forEach((cb) => cb(getState()));
+        observers[key].forEach((cb) => cb(snapshot));
     }
 
     if (observers['*']) {
-        observers['*'].forEach((cb) => cb(getState()));
+        observers['*'].forEach((cb) => cb(snapshot));
     }
 }
 
+
+function persistStateNow() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {}
+}
+
 function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    pendingPersist = true;
+    schedulePersist();
 }
 
 /* =========================
@@ -99,7 +123,7 @@ export function initState({ source = 'skip', payload = null } = {}) {
         state = createInitialState(source);
     }
 
-    persist();
+    persistStateNow();
     notify('*');
 }
 
@@ -112,8 +136,16 @@ export function setState(updater, notifyKey = '*') {
     state.meta.lastUpdated = new Date().toISOString();
 
     persist();
+
+    if (Array.isArray(notifyKey)) {
+        const keys = [...new Set(notifyKey.filter((k) => typeof k === 'string' && k.length))];
+        keys.forEach((k) => notify(k));
+        return;
+    }
+
     notify(notifyKey);
 }
+
 
 export function subscribe(key, callback) {
     if (!observers[key]) {
