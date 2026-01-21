@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
@@ -10,9 +10,11 @@
     <link rel="stylesheet" href="../css/planista.css" />
     <link rel="stylesheet" href="../css/manifest.css" />
     <link rel="stylesheet" href="../css/plan.css" />
+    <link rel="stylesheet" href="../css/takeoff.css" />
 
     <script type="module" src="../js/app.js" defer></script>
     <script type="module" src="../js/plan.js" defer></script>
+    <script type="module" src="../js/takeoff.js" defer></script>
   </head>
 
   <body>
@@ -44,7 +46,12 @@
         <div class="cards" id="plan-passengers"></div>
       </aside>
 
-      <div id="plan-message" class="plan-message plan-message--panel" role="status" aria-live="polite"></div>
+      <div
+        id="plan-message"
+        class="plan-message plan-message--panel"
+        role="status"
+        aria-live="polite"
+      ></div>
 
       <section class="plan-center">
         <div class="plan-aircraft-header">
@@ -61,13 +68,23 @@
         </div>
 
         <div class="plan-actions">
-          <button class="btn btn--secondary plan-go" type="button">ZAPISZ</button>
+          <button class="btn btn--secondary plan-go" type="button">
+            ZAPISZ
+          </button>
 
-          <button class="btn btn--primary plan-dispatch" id="plan-dispatch" type="button">
+          <button
+            class="btn btn--primary plan-dispatch"
+            id="plan-dispatch"
+            type="button"
+          >
             WYŚLIJ
           </button>
 
-          <button class="btn btn--secondary plan-undo" id="plan-undo" type="button">
+          <button
+            class="btn btn--secondary plan-undo"
+            id="plan-undo"
+            type="button"
+          >
             COFNIJ
           </button>
 
@@ -107,6 +124,10 @@
           <button class="btn btn--secondary" id="cancelTandem">Anuluj</button>
         </div>
       </div>
+    </div>
+
+    <div class="takeoff-overlay" id="takeoffOverlay">
+      <img src="../images/takeoff.webp" alt="Takeoff" class="takeoff-image" />
     </div>
   </body>
 </html>
