@@ -821,6 +821,101 @@ function renderPlanList(state) {
     renderSection('WYSŁANE (ARCHIWUM)', dispatched);
 }
 
+function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function stripIds(root) {
+    if (!root || !root.querySelectorAll) return;
+    const withId = root.querySelectorAll('[id]');
+    withId.forEach((el) => el.removeAttribute('id'));
+}
+
+function createPlanCenterOverlay(centerEl) {
+    const rect = centerEl.getBoundingClientRect();
+    const overlay = centerEl.cloneNode(true);
+
+    stripIds(overlay);
+
+    overlay.classList.add('plan-center-overlay');
+    overlay.style.left = `${rect.left}px`;
+    overlay.style.top = `${rect.top}px`;
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
+
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function waitTransitionEnd(el, timeoutMs = 320) {
+    return new Promise((resolve) => {
+        let done = false;
+
+        const finish = () => {
+            if (done) return;
+            done = true;
+            el.removeEventListener('transitionend', onEnd);
+            resolve();
+        };
+
+        const onEnd = (e) => {
+            if (e.target !== el) return;
+            finish();
+        };
+
+        el.addEventListener('transitionend', onEnd, { once: false });
+        setTimeout(finish, timeoutMs);
+    });
+}
+
+async function foldResetPlanCenter(updateFn) {
+    const center = document.querySelector('.plan-center');
+    if (!center || prefersReducedMotion()) {
+        updateFn();
+        return;
+    }
+
+    center.classList.remove('is-incoming');
+
+    requestAnimationFrame(() => {
+        center.classList.add('is-folding');
+    });
+
+    await waitTransitionEnd(center, 320);
+
+    updateFn();
+
+    requestAnimationFrame(() => {
+        center.classList.remove('is-folding');
+    });
+
+    await waitTransitionEnd(center, 320);
+}
+
+function slideSwapPlanCenter(updateFn) {
+    const center = document.querySelector('.plan-center');
+    if (!center || prefersReducedMotion()) {
+        updateFn();
+        return;
+    }
+
+    const overlay = createPlanCenterOverlay(center);
+
+    center.classList.add('is-incoming');
+
+    updateFn();
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            overlay.classList.add('is-replacing');
+            center.classList.remove('is-incoming');
+        });
+    });
+
+    waitTransitionEnd(overlay, 520).then(() => {
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    });
+}
 
 function setActivePlan(id) {
     const stateNow = getState();
@@ -834,18 +929,21 @@ function setActivePlan(id) {
     closeParachuteModal();
     closeTandemModal();
 
-    setState((state) => {
-        state.plans.activeId = id;
-        state.plans.activeStatus = plan.status;
+    slideSwapPlanCenter(() => {
+        setState((state) => {
+            state.plans.activeId = id;
+            state.plans.activeStatus = plan.status;
 
-        state.flightPlan.exitPlanId = id;
-        state.flightPlan.aircraft = plan.aircraft || state.flightPlan.aircraft;
-        state.flightPlan.time = plan.time ? plan.time : getNowTimeValue();
-        state.flightPlan.slots = plan.slots ? structuredClone(plan.slots) : [];
+            state.flightPlan.exitPlanId = id;
+            state.flightPlan.aircraft = plan.aircraft || state.flightPlan.aircraft;
+            state.flightPlan.time = plan.time ? plan.time : getNowTimeValue();
+            state.flightPlan.slots = plan.slots ? structuredClone(plan.slots) : [];
 
-        return state;
-    }, '*');
+            return state;
+        }, '*');
+    });
 }
+
 
 function startNewPlan() {
     clearPlanMessage();
@@ -1374,7 +1472,8 @@ const cancelTandem = document.getElementById('cancelTandem');
 if (cancelTandem) cancelTandem.onclick = closeTandemModal;
 
 const addBtn = document.getElementById('plan-add');
-if (addBtn) addBtn.onclick = startNewPlan;
+if (addBtn) addBtn.onclick = () => slideSwapPlanCenter(startNewPlan);
+
 
 /* =========================
    SAVE
@@ -1484,15 +1583,16 @@ if (undoBtn) undoBtn.onclick = undoDispatchedPlan;
 async function deleteExitPlan() {
     const state = getState();
     const id = state.plans.activeId ?? state.flightPlan.exitPlanId;
+
     if (!id) {
-        startNewPlan();
+        await foldResetPlanCenter(startNewPlan);
         showPlanMessage('info', 'Usunięto lot (wersja robocza)', 4000);
         return;
     }
 
     try {
         await api.deleteExitPlan(id);
-        startNewPlan();
+        await foldResetPlanCenter(startNewPlan);
         showPlanMessage('info', 'Usunięto plan', 4000);
         await syncFromApi();
     } catch (e) {
@@ -1500,6 +1600,7 @@ async function deleteExitPlan() {
         await syncFromApi();
     }
 }
+
 
 const delBtn = document.querySelector('.plan-delete');
 if (delBtn) delBtn.onclick = deleteExitPlan;
