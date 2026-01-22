@@ -5,6 +5,7 @@ import {
     getSlotPerson,
     isStaff,
     isPersonBlocked,
+    isPersonAssignedToOtherPlan,
 } from '../helpers/helpers.js';
 import {
     currentPlanId,
@@ -234,21 +235,24 @@ function renderPeople(list, targetId, type, locked, usedSet, activeId) {
 
     list.forEach((p) => {
         const isUsed = usedSet.has(p.id);
+        if (isUsed) return;
+
+        if (isPersonAssignedToOtherPlan(p, activeId)) return;
+
         const reason = getPersonBlockReason(p, activeId);
-        const blocked = isPersonBlocked(p) || reason !== '';
-        const disabled = locked || isUsed || blocked;
+        const isManualBlocked = isPersonBlocked(p) || reason !== '';
+        const disabled = locked || isManualBlocked;
 
         const metas = [];
         if (disabled && reason) metas.push({ text: reason, blocked: true });
-        if (disabled && isUsed) metas.push({ text: '📌 Już w tym planie', blocked: true });
 
         const el = card({
             disabled,
             name: fullName(p),
             metas,
-            buttonText: blocked ? 'Niedostępny' : '→ do wylotu',
+            buttonText: isManualBlocked ? 'Niedostępny' : '→ do wylotu',
             buttonDisabled: disabled,
-            buttonTitle: reason || (isUsed ? 'Już w tym planie' : ''),
+            buttonTitle: reason || '',
             onButtonClick: () => addToFlight(p, type),
         });
 

@@ -286,12 +286,17 @@ function normalizePlan(plan, people) {
 }
 
 function getUsedPersonIds(state, type) {
+    if (type === 'both') {
+        return new Set(state.flightPlan.slots.map((s) => s.personId));
+    }
+
     return new Set(
         state.flightPlan.slots
             .filter((s) => s.personType === type)
             .map((s) => s.personId)
     );
 }
+
 
 function getUsedParachuteIds(state) {
     return new Set(
@@ -310,18 +315,12 @@ function currentPlanId(state) {
 }
 
 function getPersonBlockReason(person, activePlanId) {
-    if (person.manualBlocked) return '🔒 Zablokowany ręcznie';
-    if (person.assignedExitPlanId !== null && person.assignedExitPlanId !== activePlanId) {
-        return `📌 W innym planie (#${person.assignedExitPlanId})`;
-    }
+    if (person.manualBlocked) return 'Zablokowany ręcznie';
     return '';
 }
 
 function getParachuteBlockReason(parachute, activePlanId) {
-    if (parachute.manualBlocked) return '🔒 Zablokowany ręcznie';
-    if (parachute.assignedExitPlanId !== null && parachute.assignedExitPlanId !== activePlanId) {
-        return `📌 W innym planie (#${parachute.assignedExitPlanId})`;
-    }
+    if (parachute.manualBlocked) return 'Zablokowany ręcznie';
     return '';
 }
 
@@ -407,28 +406,94 @@ function formatDateTime(value) {
 
 function handleApiError(err, fallback = 'Wystąpił błąd') {
     const status = err && typeof err.status === 'number' ? err.status : null;
-    const message =
-        err && err.message
-            ? err.message
-            : fallback;
+
+    const getProblemDetails = () => {
+        const data = err && err.data ? err.data : null;
+        if (!data) return null;
+
+        if (typeof data === 'string') {
+            const t = data.trim();
+            if (t.startsWith('{') && t.endsWith('}')) {
+                try {
+                    return JSON.parse(t);
+                } catch {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        if (data && typeof data.message === 'string') {
+            const t = data.message.trim();
+            if (t.startsWith('{') && t.endsWith('}')) {
+                try {
+                    return JSON.parse(t);
+                } catch {
+                    return null;
+                }
+            }
+        }
+
+        return data;
+    };
+
+    const pd = getProblemDetails();
 
     if (status === 409) {
-        showPlanMessage('error', message || 'Konflikt danych', 7000);
+        const message =
+            (pd && (pd.error || pd.message)) || (err && err.message) || 'Konflikt danych';
+        showPlanMessage('error', message, 7000);
         return;
     }
 
     if (status === 400) {
-        showPlanMessage('error', message || 'Niepoprawne dane', 7000);
+        const errors = pd && pd.errors && typeof pd.errors === 'object' ? pd.errors : null;
+
+        if (errors) {
+            const keys = Object.keys(errors);
+
+            const hasParachuteIdError =
+                keys.some((k) => k.toLowerCase().includes('parachuteid')) ||
+                Object.values(errors)
+                    .flat()
+                    .some((m) =>
+                        String(m).toLowerCase().includes('could not be converted to system.int32')
+                    );
+
+            if (hasParachuteIdError) {
+                showPlanMessage(
+                    'error',
+                    `${fallback} — przypisz spadochron.`,
+                    7000
+                );
+                return;
+            }
+
+            const first = Object.values(errors).flat().map(String).find((x) => x.trim() !== '');
+            if (first) {
+                showPlanMessage('error', `${fallback} — ${first}`, 7000);
+                return;
+            }
+        }
+
+        const message =
+            (pd && (pd.error || pd.message || pd.title)) || (err && err.message) || 'Niepoprawne dane';
+
+        showPlanMessage('error', `${fallback} — ${message}`, 7000);
         return;
     }
 
     if (status && status >= 500) {
-        showPlanMessage('error', message || 'Błąd serwera', 7000);
+        const message =
+            (pd && (pd.error || pd.message || pd.title)) || (err && err.message) || 'Błąd serwera';
+        showPlanMessage('error', message, 7000);
         return;
     }
 
-    showPlanMessage('error', message || fallback, 7000);
-}
+    const message =
+        (pd && (pd.error || pd.message || pd.title)) || (err && err.message) || fallback;
 
+    showPlanMessage('error', message, 7000);
+}
 
 export { initPlanLeftCollapsibles, getFirstFreeSlot, normalizeTimeValue, getNowTimeValue, buildExitPlanPayload, normalizePlan, currentPlanId, isLockedPlan, getUsedPersonIds, getUsedParachuteIds, getPersonBlockReason, getParachuteBlockReason, clearPlanMessage, showPlanMessage, handleApiError, formatDateTime };

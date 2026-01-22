@@ -7,9 +7,10 @@ import {
     getAvailableParachutes,
     getParachuteLabel,
     getSlotPerson,
-    getTandemInstructorsInFlight,
     isParachuteBlocked,
     isPersonBlocked,
+    isParachuteAssignedToOtherPlan,
+    isPersonAssignedToOtherPlan,
     validateTandemRules,
     validateStudentRules,
 } from '../helpers/helpers.js';
@@ -191,7 +192,7 @@ function addToFlight(person, type) {
     const activeId = currentPlanId(stateNow);
 
     if (isPersonBlocked(person)) return;
-    if (getPersonBlockReason(person, activeId)) return;
+    if (isPersonAssignedToOtherPlan(person, activeId)) return;
 
     const used = getUsedPersonIds(stateNow, type);
     if (used.has(person.id)) return;
@@ -265,6 +266,7 @@ function assignParachuteToSlot(parachuteId) {
     if (!parachute) return;
 
     if (isParachuteBlocked(parachute)) return;
+    if (isParachuteAssignedToOtherPlan(parachute, activeId)) return;
     if (getParachuteBlockReason(parachute, activeId)) return;
 
     const usedParachutes = getUsedParachuteIds(stateNow);
@@ -346,7 +348,7 @@ function closeTandemModal() {
 }
 
 /* =========================
-   PARACHUTE SELECT (6F: show disabled + reason)
+   PARACHUTE SELECT
 ========================= */
 function renderParachuteOptions() {
     const target = document.getElementById('parachuteOptions');
@@ -356,48 +358,88 @@ function renderParachuteOptions() {
     const activeId = currentPlanId(state);
     const usedParachutes = getUsedParachuteIds(state);
 
-    const list = getAvailableParachutes(state);
+    const list = getAvailableParachutes(state, activeId);
 
-    list.forEach((p) => {
-        const blockedReason = getParachuteBlockReason(p, activeId);
-        const isBlocked = isParachuteBlocked(p);
-        const isUsed = usedParachutes.has(p.id);
-
-        const disabled = isBlocked || isUsed || !!blockedReason;
-        const reason = blockedReason || (isUsed ? 'W użyciu' : isBlocked ? 'Zablokowany' : '');
-
-        const btn = document.createElement('button');
-        btn.className = 'btn btn--secondary';
-        btn.disabled = disabled;
-        btn.textContent = `${getParachuteLabel(p)}${reason ? ` — ${reason}` : ''}`;
-
-        btn.onclick = () => assignParachuteToSlot(p.id);
-        target.appendChild(btn);
-    });
+    list
+        .filter((p) => !usedParachutes.has(p.id))
+        .filter((p) => !getParachuteBlockReason(p, activeId))
+        .forEach((p) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn--secondary';
+            btn.textContent = getParachuteLabel(p);
+            btn.onclick = () => assignParachuteToSlot(p.id);
+            target.appendChild(btn);
+        });
 }
 
+
 /* =========================
-   TANDEM SELECT (6F: show disabled + reason)
+   TANDEM SELECT
 ========================= */
 function renderTandemInstructorOptions() {
     const target = document.getElementById('tandemOptions');
     target.innerHTML = '';
 
     const state = getState();
-    const inFlight = getTandemInstructorsInFlight(state);
 
-    const candidates = state.people.skydivers.filter((s) => s.isTandemInstructor);
+    const passengerSlot = state.flightPlan.slots.find(
+        (s) => s.slotNumber === passengerWaitingForInstructor
+    );
 
-    candidates.forEach((p) => {
-        const disabled = isPersonBlocked(p) || inFlight.has(p.id);
-        const reason = inFlight.has(p.id) ? 'Już w locie' : isPersonBlocked(p) ? 'Zablokowany' : '';
+    const currentInstructorId = passengerSlot?.tandemInstructorId ?? null;
+
+    const alreadyUsed = new Set(
+        state.flightPlan.slots
+            .filter((s) => s.personType === 'passenger')
+            .map((s) => s.tandemInstructorId)
+            .filter((id) => id !== null && id !== undefined)
+            .filter((id) => id !== null && id !== undefined)
+    );
+
+    const candidates = state.flightPlan.slots
+        .filter((s) => s.personType === 'skydiver')
+        .map((slot) => ({
+            slot,
+            person: state.people.skydivers.find((p) => p.id === slot.personId) || null,
+        }))
+        .filter(({ person }) => person && person.isTandemInstructor === true);
+
+    if (candidates.length === 0) {
+        const info = document.createElement('div');
+        info.className = 'card-meta card-meta--blocked';
+        info.textContent = 'Brak instruktorów tandemowych w tym locie.';
+        target.appendChild(info);
+        return;
+    }
+
+    candidates.forEach(({ person, slot }) => {
+        const parachute = slot.parachuteId
+            ? state.parachutes.find((p) => p.id === slot.parachuteId)
+            : null;
+
+        let disabled = false;
+        let reason = '';
+
+        if (isPersonBlocked(person)) {
+            disabled = true;
+            reason = 'Zablokowany ręcznie';
+        } else if (!parachute) {
+            disabled = true;
+            reason = 'Brak spadochronu';
+        } else if (parachute.type !== 'Tandem') {
+            disabled = true;
+            reason = 'Brak spadochronu tandemowego';
+        } else if (alreadyUsed.has(person.id) && person.id !== currentInstructorId) {
+            disabled = true;
+            reason = 'Już przypisany do tandemu';
+        }
 
         const btn = document.createElement('button');
         btn.className = 'btn btn--secondary';
         btn.disabled = disabled;
-        btn.textContent = `${fullName(p)}${reason ? ` — ${reason}` : ''}`;
+        btn.textContent = `${fullName(person)}${reason ? ` — ${reason}` : ''}`;
 
-        btn.onclick = () => assignTandemInstructor(p.id);
+        btn.onclick = () => assignTandemInstructor(person.id);
         target.appendChild(btn);
     });
 }
@@ -592,11 +634,40 @@ async function dispatchActivePlan() {
                     dispatchedAt: now,
                 };
             }
+
+            const usedPersonIds = new Set((s.flightPlan.slots || []).map((sl) => sl.personId));
+            const usedParachuteIds = new Set(
+                (s.flightPlan.slots || [])
+                    .map((sl) => sl.parachuteId)
+                    .filter((pid) => pid !== null && pid !== undefined)
+            );
+
+            s.people.skydivers = (s.people.skydivers || []).map((p) => {
+                if (p.assignedExitPlanId === id && usedPersonIds.has(p.id)) {
+                    return { ...p, assignedExitPlanId: null };
+                }
+                return p;
+            });
+
+            s.people.passengers = (s.people.passengers || []).map((p) => {
+                if (p.assignedExitPlanId === id && usedPersonIds.has(p.id)) {
+                    return { ...p, assignedExitPlanId: null };
+                }
+                return p;
+            });
+
+            s.parachutes = (s.parachutes || []).map((p) => {
+                if (p.assignedExitPlanId === id && usedParachuteIds.has(p.id)) {
+                    return { ...p, assignedExitPlanId: null };
+                }
+                return p;
+            });
+
             s.plans.activeId = id;
             s.plans.activeStatus = 'Dispatched';
             s.flightPlan.exitPlanId = id;
             return s;
-        }, ['plans', 'flightPlan']);
+        }, ['plans', 'flightPlan', 'people', 'parachutes']);
 
         showPlanMessage('success', 'Wysłano', 4000);
         return;
@@ -632,9 +703,38 @@ async function undoDispatchedPlan() {
                     status: 'Draft',
                     dispatchedAt: null,
                 };
+
+                const planSlots = s.plans.list[idx].slots || [];
+                const usedPersonIds = new Set(planSlots.map((sl) => sl.personId));
+                const usedParachuteIds = new Set(
+                    planSlots
+                        .map((sl) => sl.parachuteId)
+                        .filter((pid) => pid !== null && pid !== undefined)
+                );
+
+                s.people.skydivers = (s.people.skydivers || []).map((p) => {
+                    if (!usedPersonIds.has(p.id)) return p;
+                    if (p.manualBlocked) return p;
+                    if (p.assignedExitPlanId === null) return { ...p, assignedExitPlanId: id };
+                    return p;
+                });
+
+                s.people.passengers = (s.people.passengers || []).map((p) => {
+                    if (!usedPersonIds.has(p.id)) return p;
+                    if (p.manualBlocked) return p;
+                    if (p.assignedExitPlanId === null) return { ...p, assignedExitPlanId: id };
+                    return p;
+                });
+
+                s.parachutes = (s.parachutes || []).map((p) => {
+                    if (!usedParachuteIds.has(p.id)) return p;
+                    if (p.manualBlocked) return p;
+                    if (p.assignedExitPlanId === null) return { ...p, assignedExitPlanId: id };
+                    return p;
+                });
             }
             return s;
-        }, 'plans');
+        }, ['plans', 'people', 'parachutes']);
 
         startNewPlan();
         showPlanMessage('info', 'Cofnięto wysłany plan', 5000);

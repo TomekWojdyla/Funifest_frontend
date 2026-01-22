@@ -34,14 +34,22 @@ export const isStaff = (s) =>
     s.isTandemInstructor;
 
 /* =========================
-   LOCKS – SOURCE OF TRUTH (BE)
+   LOCKS
 ========================= */
 export function isPersonBlocked(p) {
-    return p.manualBlocked === true || p.assignedExitPlanId !== null;
+    return p.manualBlocked === true;
 }
 
 export function isParachuteBlocked(p) {
-    return p.manualBlocked === true || p.assignedExitPlanId !== null;
+    return p.manualBlocked === true;
+}
+
+export function isPersonAssignedToOtherPlan(p, activePlanId = null) {
+    return p.assignedExitPlanId !== null && p.assignedExitPlanId !== activePlanId;
+}
+
+export function isParachuteAssignedToOtherPlan(p, activePlanId = null) {
+    return p.assignedExitPlanId !== null && p.assignedExitPlanId !== activePlanId;
 }
 
 /* =========================
@@ -75,48 +83,52 @@ export function getParachuteLabel(p) {
 /* =========================
    AVAILABLE LISTS (PLAN)
 ========================= */
-export function getAvailablePeople(state, type) {
+export function getAvailablePeople(state, type, activePlanId = null) {
     const list =
         type === 'skydiver' ? state.people.skydivers : state.people.passengers;
 
-    return list.filter((p) => !isPersonBlocked(p));
+    return list.filter(
+        (p) => !isPersonBlocked(p) && !isPersonAssignedToOtherPlan(p, activePlanId)
+    );
 }
 
-export function getAvailableParachutes(state) {
-    return state.parachutes.filter((p) => !isParachuteBlocked(p));
+export function getAvailableParachutes(state, activePlanId = null) {
+    return state.parachutes.filter(
+        (p) => !isParachuteBlocked(p) && !isParachuteAssignedToOtherPlan(p, activePlanId)
+    );
 }
 
 /* =========================
    TANDEM HELPERS
 ========================= */
 export function getTandemInstructorsInFlight(state) {
-    return state.flightPlan.slots
+    const ids = new Set();
+
+    state.flightPlan.slots
         .filter((s) => s.personType === 'skydiver')
-        .map((s) => ({
-            slot: s,
-            person: getPersonById(state, s.personId, 'skydiver'),
-        }))
-        .filter(
-            ({ person, slot }) =>
-                person && person.isTandemInstructor === true && slot.parachuteId
-        );
+        .forEach((s) => {
+            const person = getPersonById(state, s.personId, 'skydiver');
+            if (!person || person.isTandemInstructor !== true) return;
+            if (!s.parachuteId) return;
+            ids.add(person.id);
+        });
+
+    return ids;
 }
 
 /* =========================
    VALIDATION – TANDEM
 ========================= */
-export function validateTandemRules(state) {
+export function validateTandemRules(state, passengerSlots = null, skydiverSlots = null) {
     const slots = state.flightPlan.slots;
 
-    const passengerSlots = slots.filter((s) => s.personType === 'passenger');
+    const passengers = passengerSlots || slots.filter((s) => s.personType === 'passenger');
+    const skydivers = skydiverSlots || slots.filter((s) => s.personType === 'skydiver');
 
-    for (const ps of passengerSlots) {
+    for (const ps of passengers) {
         if (!ps.tandemInstructorId) return false;
 
-        const instructorSlot = slots.find(
-            (s) =>
-                s.personType === 'skydiver' && s.personId === ps.tandemInstructorId
-        );
+        const instructorSlot = skydivers.find((s) => s.personId === ps.tandemInstructorId);
 
         if (!instructorSlot) return false;
 
@@ -127,7 +139,7 @@ export function validateTandemRules(state) {
 
     // 1 instruktor = max 1 pasażer
     const usage = {};
-    passengerSlots.forEach((ps) => {
+    passengers.forEach((ps) => {
         usage[ps.tandemInstructorId] =
             (usage[ps.tandemInstructorId] || 0) + 1;
     });
@@ -148,13 +160,13 @@ function isEligibleInstructorForStudent(person) {
     return person.isAffInstructor === true || person.role === 'Instructor' || person.role === 'Examiner';
 }
 
-export function validateStudentRules(state) {
+export function validateStudentRules(state, skydiverSlots = null) {
     const slots = state.flightPlan.slots;
 
-    const skydiverSlots = slots.filter((s) => s.personType === 'skydiver');
+    const skydivers = skydiverSlots || slots.filter((s) => s.personType === 'skydiver');
     const passengerSlots = slots.filter((s) => s.personType === 'passenger');
 
-    const studentPresent = skydiverSlots.some((s) => {
+    const studentPresent = skydivers.some((s) => {
         const p = getPersonById(state, s.personId, 'skydiver');
         return p && isStudentRole(p.role);
     });
@@ -167,7 +179,7 @@ export function validateStudentRules(state) {
             .filter((id) => id !== null && id !== undefined)
     );
 
-    const hasNonTandemInstructor = skydiverSlots.some((s) => {
+    const hasNonTandemInstructor = skydivers.some((s) => {
         const p = getPersonById(state, s.personId, 'skydiver');
         if (!isEligibleInstructorForStudent(p)) return false;
         return !tandemInstructorIds.has(p.id);
@@ -175,5 +187,3 @@ export function validateStudentRules(state) {
 
     return hasNonTandemInstructor;
 }
-
-

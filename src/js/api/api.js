@@ -43,10 +43,10 @@ export async function fetchJson(path, options = {}) {
         throw new Error('Network error');
     }
 
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
     let data = null;
 
-    if (contentType.includes('application/json')) {
+    if (contentType.includes('json')) {
         try {
             data = await response.json();
         } catch {
