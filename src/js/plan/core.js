@@ -287,7 +287,7 @@ function normalizePlan(plan, people) {
 
 function getUsedPersonIds(state, type) {
     if (type === 'both') {
-        return new Set(state.flightPlan.slots.map((s) => s.personId));
+        return new Set(state.flightPlan.slots.map((s) => `${s.personType}:${s.personId}`));
     }
 
     return new Set(
@@ -296,7 +296,6 @@ function getUsedPersonIds(state, type) {
             .map((s) => s.personId)
     );
 }
-
 
 function getUsedParachuteIds(state) {
     return new Set(

@@ -307,6 +307,24 @@ function assignTandemInstructor(instructorId) {
     const stateNow = getState();
     if (isLockedPlan(stateNow)) return;
 
+    const instructorSlot = stateNow.flightPlan.slots.find(
+        (s) => s.personType === 'skydiver' && s.personId === instructorId
+    );
+
+    const instructorParachute =
+        instructorSlot?.parachuteId
+            ? stateNow.parachutes.find((p) => p.id === instructorSlot.parachuteId)
+            : null;
+
+    if (!instructorParachute || instructorParachute.type !== 'Tandem') {
+        showPlanMessage(
+            'error',
+            'Nie można przypisać: instruktor tandemowy musi mieć spadochron typu Tandem.',
+            7000
+        );
+        return;
+    }
+
     setState((state) => {
         const passengerSlot = state.flightPlan.slots.find(
             (s) => s.slotNumber === passengerWaitingForInstructor
@@ -314,32 +332,14 @@ function assignTandemInstructor(instructorId) {
         if (!passengerSlot) return state;
 
         passengerSlot.tandemInstructorId = instructorId;
-
-        const instructorSlot = state.flightPlan.slots.find(
-            (s) => s.personType === 'skydiver' && s.personId === instructorId
-        );
-
-        const instructorParachute =
-            instructorSlot?.parachuteId
-                ? state.parachutes.find((p) => p.id === instructorSlot.parachuteId)
-                : null;
-
-        if (!instructorParachute || instructorParachute.type !== 'Tandem') {
-            showPlanMessage(
-                'error',
-                'Instruktor tandemowy musi mieć spadochron typu Tandem.',
-                7000
-            );
-            return state;
-        }
-
-        passengerSlot.parachuteId = instructorSlot?.parachuteId ?? null;
+        passengerSlot.parachuteId = instructorSlot.parachuteId;
 
         return state;
     }, 'flightPlan');
 
     closeTandemModal();
 }
+
 
 function closeTandemModal() {
     passengerWaitingForInstructor = null;
@@ -385,14 +385,12 @@ function renderTandemInstructorOptions() {
     const passengerSlot = state.flightPlan.slots.find(
         (s) => s.slotNumber === passengerWaitingForInstructor
     );
-
     const currentInstructorId = passengerSlot?.tandemInstructorId ?? null;
 
     const alreadyUsed = new Set(
         state.flightPlan.slots
             .filter((s) => s.personType === 'passenger')
             .map((s) => s.tandemInstructorId)
-            .filter((id) => id !== null && id !== undefined)
             .filter((id) => id !== null && id !== undefined)
     );
 
@@ -401,72 +399,48 @@ function renderTandemInstructorOptions() {
         .map((slot) => ({
             slot,
             person: state.people.skydivers.find((p) => p.id === slot.personId) || null,
+            parachute: slot.parachuteId
+                ? state.parachutes.find((p) => p.id === slot.parachuteId) || null
+                : null,
         }))
-        .filter(({ person }) => person && person.isTandemInstructor === true);
+        .filter(({ person }) => person && person.isTandemInstructor === true)
+        .filter(({ parachute }) => parachute && parachute.type === 'Tandem');
 
     if (candidates.length === 0) {
         const info = document.createElement('div');
         info.className = 'card-meta card-meta--blocked';
-        info.textContent = 'Brak instruktorów tandemowych w tym locie.';
+        info.textContent = 'Brak dostępnych instruktorów tandemowych (z przypisanym spadochronem Tandem).';
         target.appendChild(info);
         return;
     }
 
-    candidates.forEach(({ person, slot }) => {
-        const parachute = slot.parachuteId
-            ? state.parachutes.find((p) => p.id === slot.parachuteId)
-            : null;
+    candidates.forEach(({ person }) => {
+        const disabled =
+            isPersonBlocked(person) ||
+            (alreadyUsed.has(person.id) && person.id !== currentInstructorId);
 
-        let disabled = false;
-        let reason = '';
-
-        if (isPersonBlocked(person)) {
-            disabled = true;
-            reason = 'Zablokowany ręcznie';
-        } else if (!parachute) {
-            disabled = true;
-            reason = 'Brak spadochronu';
-        } else if (parachute.type !== 'Tandem') {
-            disabled = true;
-            reason = 'Brak spadochronu tandemowego';
-        } else if (alreadyUsed.has(person.id) && person.id !== currentInstructorId) {
-            disabled = true;
-            reason = 'Już przypisany do tandemu';
-        }
+        const reason = isPersonBlocked(person)
+            ? 'Zablokowany ręcznie'
+            : (alreadyUsed.has(person.id) && person.id !== currentInstructorId)
+              ? 'Już przypisany do tandemu'
+              : '';
 
         const btn = document.createElement('button');
         btn.className = 'btn btn--secondary';
         btn.disabled = disabled;
         btn.textContent = `${fullName(person)}${reason ? ` — ${reason}` : ''}`;
-
         btn.onclick = () => assignTandemInstructor(person.id);
+
         target.appendChild(btn);
     });
 }
+
 
 /* =========================
    VALIDATION
 ========================= */
 function validateFlight(state) {
-    if (!state.flightPlan.aircraft) return false;
-    if (!normalizeTimeValue(state.flightPlan.time)) return false;
-    if (!Array.isArray(state.flightPlan.slots)) return false;
-    if (state.flightPlan.slots.length === 0) return false;
-
-    const usedPersonIds = getUsedPersonIds(state, 'both');
-    if (usedPersonIds.size !== state.flightPlan.slots.length) return false;
-
-    const usedParachuteIds = getUsedParachuteIds(state);
-    if (usedParachuteIds.size !== state.flightPlan.slots.filter((s) => s.parachuteId !== null).length)
-        return false;
-
-    const passengers = state.flightPlan.slots.filter((s) => s.personType === 'passenger');
-    const skydivers = state.flightPlan.slots.filter((s) => s.personType === 'skydiver');
-
-    if (!validateStudentRules(state, skydivers)) return false;
-    if (!validateTandemRules(state, passengers, skydivers)) return false;
-
-    return true;
+    return getFlightValidationMessage(state) === '';
 }
 
 function getFlightValidationMessage(state) {
@@ -475,16 +449,47 @@ function getFlightValidationMessage(state) {
     if (!Array.isArray(state.flightPlan.slots) || state.flightPlan.slots.length === 0)
         return 'Dodaj osoby do lotu';
 
-    const passengers = state.flightPlan.slots.filter((s) => s.personType === 'passenger');
-    const skydivers = state.flightPlan.slots.filter((s) => s.personType === 'skydiver');
+    const usedPersonIds = getUsedPersonIds(state, 'both');
+    if (usedPersonIds.size !== state.flightPlan.slots.length)
+        return 'Ta sama osoba jest dodana więcej niż raz';
 
-    if (!validateStudentRules(state, skydivers))
+    const skydiverSlots = state.flightPlan.slots.filter((s) => s.personType === 'skydiver');
+    const missingSkydiverParachute = skydiverSlots.some((s) => s.parachuteId === null);
+    if (missingSkydiverParachute) return 'Skoczek musi mieć przypisany spadochron';
+
+    const skydiverParachuteIds = skydiverSlots.map((s) => s.parachuteId).filter((id) => id !== null);
+    const skydiverParachuteSet = new Set(skydiverParachuteIds);
+    if (skydiverParachuteSet.size !== skydiverParachuteIds.length)
+        return 'Ten sam spadochron jest przypisany do więcej niż jednego skoczka';
+
+    if (!validateStudentRules(state, skydiverSlots))
         return 'Student musi mieć instruktora AFF w locie';
-    if (!validateTandemRules(state, passengers, skydivers))
+
+    const passengerSlots = state.flightPlan.slots.filter((s) => s.personType === 'passenger');
+
+    for (const ps of passengerSlots) {
+        if (!ps.tandemInstructorId) return 'Tandem: wybierz instruktora tandemowego';
+
+        const insSlot = skydiverSlots.find((s) => s.personId === ps.tandemInstructorId);
+        if (!insSlot) return 'Tandem: instruktor musi być dodany do lotu';
+
+        if (insSlot.parachuteId === null) return 'Tandem: instruktor musi mieć spadochron';
+
+        if (ps.parachuteId === null || ps.parachuteId !== insSlot.parachuteId)
+            return 'Tandem: spadochron pasażera musi być taki sam jak instruktora';
+
+        const parachute = state.parachutes.find((p) => p.id === insSlot.parachuteId) || null;
+        if (!parachute) return 'Tandem: nie znaleziono spadochronu instruktora';
+        if (parachute.type !== 'Tandem') return 'Tandem: instruktor musi mieć spadochron typu Tandem';
+    }
+
+    // 6) final: jeśli tandem reguły masz jeszcze gdzieś indziej
+    if (!validateTandemRules(state, passengerSlots, skydiverSlots))
         return 'Tandem: pasażer musi mieć instruktora tandemowego + spadochron tandemowy';
 
-    return 'Niepoprawny plan';
+    return '';
 }
+
 
 /* =========================
    SAVE

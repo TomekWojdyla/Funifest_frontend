@@ -22,6 +22,8 @@ let planDrag = {
     originEl: null,
     ghostEl: null,
     hoverSlotEl: null,
+    originSlotNumber: null,
+    originIsSlot: false,
 };
 
 function setSlotsLiftActive(active) {
@@ -60,6 +62,8 @@ function cleanupPlanDrag() {
         originEl: null,
         ghostEl: null,
         hoverSlotEl: null,
+        originSlotNumber: null,
+        originIsSlot: false,
     };
 
     document.body.classList.remove('is-dragging');
@@ -70,6 +74,45 @@ function getSlotElFromPoint(x, y) {
     const el = document.elementFromPoint(x, y);
     if (!el) return null;
     return el.closest ? el.closest('.slot[data-slot]') : null;
+}
+
+function getPersonFromState(state, slot) {
+    if (!slot) return null;
+    if (slot.personType === 'skydiver') {
+        return (state.people.skydivers || []).find((p) => p.id === slot.personId) || null;
+    }
+    if (slot.personType === 'passenger') {
+        return (state.people.passengers || []).find((p) => p.id === slot.personId) || null;
+    }
+    return null;
+}
+
+function clearSlot(slotNumber) {
+    const stateNow = getState();
+    if (isLockedPlan(stateNow)) return;
+
+    setState((state) => {
+        const removed = state.flightPlan.slots.find((s) => s.slotNumber === slotNumber);
+        if (!removed) return state;
+
+        if (removed.personType === 'skydiver') {
+            const skydiverId = removed.personId;
+
+            state.flightPlan.slots = state.flightPlan.slots.map((s) => {
+                if (s.personType !== 'passenger') return s;
+                if (s.tandemInstructorId !== skydiverId) return s;
+
+                return {
+                    ...s,
+                    tandemInstructorId: null,
+                    parachuteId: null,
+                };
+            });
+        }
+
+        state.flightPlan.slots = state.flightPlan.slots.filter((s) => s.slotNumber !== slotNumber);
+        return state;
+    }, 'flightPlan');
 }
 
 function assignPersonToSlot(person, type, slotNumber) {
@@ -145,6 +188,34 @@ function beginPersonDrag(e, person, type, originEl) {
     planDrag.personType = type;
     planDrag.originEl = originEl;
 
+    planDrag.originSlotNumber = null;
+    planDrag.originIsSlot = false;
+
+    const rect = originEl.getBoundingClientRect();
+    planDrag.offsetX = e.clientX - rect.left;
+    planDrag.offsetY = e.clientY - rect.top;
+}
+
+function beginSlotDrag(e, slotNumber, originEl) {
+    const stateNow = getState();
+    if (isLockedPlan(stateNow)) return;
+
+    const slot = stateNow.flightPlan.slots.find((s) => s.slotNumber === slotNumber);
+    if (!slot) return;
+
+    const person = getPersonFromState(stateNow, slot);
+    if (!person) return;
+
+    planDrag.pointerId = e.pointerId ?? null;
+    planDrag.startX = e.clientX;
+    planDrag.startY = e.clientY;
+    planDrag.person = person;
+    planDrag.personType = slot.personType;
+    planDrag.originEl = originEl;
+
+    planDrag.originSlotNumber = slotNumber;
+    planDrag.originIsSlot = true;
+
     const rect = originEl.getBoundingClientRect();
     planDrag.offsetX = e.clientX - rect.left;
     planDrag.offsetY = e.clientY - rect.top;
@@ -217,10 +288,17 @@ function initPlanDragAndDrop() {
 
         if (planDrag.started) {
             const slotEl = planDrag.hoverSlotEl;
+
             if (slotEl && slotEl.dataset && slotEl.dataset.slot) {
                 const slotNumber = Number(slotEl.dataset.slot);
                 if (!Number.isNaN(slotNumber)) {
-                    assignPersonToSlot(planDrag.person, planDrag.personType, slotNumber);
+                    if (!planDrag.originIsSlot) {
+                        assignPersonToSlot(planDrag.person, planDrag.personType, slotNumber);
+                    }
+                }
+            } else {
+                if (planDrag.originIsSlot && planDrag.originSlotNumber !== null) {
+                    clearSlot(planDrag.originSlotNumber);
                 }
             }
         }
@@ -233,4 +311,4 @@ function initPlanDragAndDrop() {
     document.addEventListener('blur', () => cleanupPlanDrag(), true);
 }
 
-export { beginPersonDrag, initPlanDragAndDrop };
+export { beginPersonDrag, beginSlotDrag, initPlanDragAndDrop };

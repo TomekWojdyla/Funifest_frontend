@@ -33,9 +33,6 @@ if (saveBtn) saveBtn.onclick = saveExitPlan;
 const dispatchBtn = document.getElementById('plan-dispatch');
 if (dispatchBtn) dispatchBtn.onclick = dispatchActivePlan;
 
-const undoBtn = document.getElementById('plan-undo');
-if (undoBtn) undoBtn.onclick = undoDispatchedPlan;
-
 const delBtn = document.querySelector('.plan-delete');
 if (delBtn) delBtn.onclick = deleteExitPlan;
 

@@ -22,7 +22,7 @@ import {
     removeFromFlight,
     setActivePlan,
 } from './actions.js';
-import { beginPersonDrag } from './dnd.js';
+import { beginPersonDrag, beginSlotDrag } from './dnd.js';
 import { escapeHtml } from '../ui/safe.js';
 
 /* =========================
@@ -234,10 +234,13 @@ function renderPeople(list, targetId, type, locked, usedSet, activeId) {
     clearEl(target);
 
     list.forEach((p) => {
+        if (isPersonBlocked(p)) return;
+
         const isUsed = usedSet.has(p.id);
         if (isUsed) return;
 
         if (isPersonAssignedToOtherPlan(p, activeId)) return;
+
 
         const reason = getPersonBlockReason(p, activeId);
         const isManualBlocked = isPersonBlocked(p) || reason !== '';
@@ -280,6 +283,7 @@ function renderSlots(state, locked) {
 
         if (!slot) {
             el.textContent = `SLOT ${num}`;
+            el.onpointerdown = null;
             return;
         }
 
@@ -358,8 +362,19 @@ function renderSlots(state, locked) {
                 }
             }
         }
+
+        if (!locked) {
+            el.onpointerdown = (e) => {
+                if (e.target && e.target.closest && e.target.closest('button')) return;
+                if (e.button !== undefined && e.button !== 0) return;
+                beginSlotDrag(e, num, el);
+            };
+        } else {
+            el.onpointerdown = null;
+        }
     });
 }
+
 
 /* =========================
    BUTTONS
@@ -370,7 +385,6 @@ function renderButtons(state) {
     const saveBtn = document.querySelector('.plan-go');
     const delBtn = document.querySelector('.plan-delete');
     const dispatchBtn = document.getElementById('plan-dispatch');
-    const undoBtn = document.getElementById('plan-undo');
 
     const hasId = state.flightPlan.exitPlanId !== null;
 
@@ -383,11 +397,6 @@ function renderButtons(state) {
     if (dispatchBtn) {
         dispatchBtn.style.display = locked ? 'none' : '';
         dispatchBtn.disabled = locked;
-    }
-
-    if (undoBtn) {
-        undoBtn.style.display = locked ? '' : 'none';
-        undoBtn.disabled = !hasId;
     }
 
     if (delBtn) {
