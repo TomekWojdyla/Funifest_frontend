@@ -148,18 +148,21 @@
   justify-content: flex-start;
   gap: 8px;
 
-  transition: transform 120ms ease, box-shadow 120ms ease, outline 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    outline 120ms ease;
   overflow: hidden;
 }
 
 .slot.slot--lift {
   transform: translateY(-6px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
 }
 
 .slot.slot--hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
   outline: 2px solid rgba(46, 204, 113, 0.9);
   outline-offset: 2px;
 }
@@ -337,7 +340,7 @@
 
 .modal .cards {
   max-height: 300px;
-  overflow-y: auto;
+  /* overflow-y: auto; */
 }
 
 @media (min-width: 700px) {
@@ -439,7 +442,9 @@ body.is-dragging * {
   cursor: grabbing !important;
 }
 
-.plan-left, .plan-center, .plan-right {
+.plan-left,
+.plan-center,
+.plan-right {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
